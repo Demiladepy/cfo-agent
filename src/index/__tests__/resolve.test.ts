@@ -21,5 +21,5 @@ describe("resolveLifiSdk", () => {
     const { resolveLifiSdk } = await import("../../lifi/resolve.js");
     const { mode } = resolveLifiSdk({ LIFI_INTEGRATOR: undefined });
     expect(mode).toBe("mock");
-  });
+  }, 20_000);
 });

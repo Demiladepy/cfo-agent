@@ -48,6 +48,14 @@ function formatNgn(n) {
   return `₦${Number(n).toLocaleString()}`;
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function showToast(message) {
   const toast = $("#toast");
   toast.textContent = message;
@@ -63,9 +71,9 @@ function renderSteps(steps, animate = true) {
   list.innerHTML = steps
     .map(
       (s) => `
-    <li class="step ${animate ? "" : s.status}">
-      <div class="step-rail"><span class="step-dot"></span></div>
-      <div class="step-content">
+    <li class="tl-step ${animate ? "" : s.status}">
+      <span class="tl-dot"></span>
+      <div class="tl-body">
         <strong>${escapeHtml(s.label)}</strong>
         <p>${escapeHtml(s.detail)}</p>
       </div>
@@ -75,7 +83,7 @@ function renderSteps(steps, animate = true) {
 
   if (!animate) return;
 
-  $$(".step").forEach((el, i) => {
+  $$(".tl-step").forEach((el, i) => {
     setTimeout(() => {
       el.classList.add("active");
       setTimeout(() => {
@@ -84,14 +92,8 @@ function renderSteps(steps, animate = true) {
       }, 550);
     }, i * 650);
   });
-}
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  document.getElementById("steps")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function renderAudit(entries) {
@@ -120,7 +122,7 @@ function renderStack(stack) {
       (item) => `
     <li>
       <strong>${escapeHtml(item.label)}</strong>
-      <span class="tag ${TAG[item.status] ?? "tag-stub"}" title="${escapeHtml(item.status)}">${STATUS_LABEL[item.status] ?? item.status}</span>
+      <span class="tag ${TAG[item.status] ?? "tag-stub"}">${STATUS_LABEL[item.status] ?? item.status}</span>
     </li>`,
     )
     .join("");
@@ -129,15 +131,14 @@ function renderStack(stack) {
 function appendChatBubble(text, role = "assistant") {
   const thread = $("#chat-reply");
   const bubble = document.createElement("div");
-  bubble.className = `chat-bubble ${role}`;
+  bubble.className = `chat-msg ${role}`;
   bubble.innerHTML = `<p>${escapeHtml(text)}</p>`;
   thread.appendChild(bubble);
   thread.scrollTop = thread.scrollHeight;
-  return bubble;
 }
 
 function clearThinking() {
-  $("#chat-reply").querySelector(".chat-bubble.thinking")?.remove();
+  $("#chat-reply").querySelector(".chat-msg.thinking")?.remove();
 }
 
 async function loadStatus() {
@@ -160,10 +161,10 @@ async function loadStatus() {
   const badge = $("#mode-badge");
   if (data.dryRun) {
     badge.textContent = "Sandbox";
-    badge.className = "badge badge-sandbox";
+    badge.className = "nav-badge";
   } else {
     badge.textContent = "Live";
-    badge.className = "badge badge-live";
+    badge.className = "nav-badge live";
   }
 
   renderStack(data.stack);
@@ -200,8 +201,7 @@ async function runScenario() {
         body: JSON.stringify(scenario.body),
       });
       renderSteps(data.steps);
-      if (data.ok) showToast("Scenario completed successfully");
-      else showToast("Scenario finished with errors");
+      showToast(data.ok ? "Scenario completed successfully" : "Scenario finished with errors");
     } else {
       const data = await api(scenario.endpoint, {
         method: "POST",
@@ -245,6 +245,10 @@ $$(".choice").forEach((el) => {
 $("#run-btn").addEventListener("click", runScenario);
 $("#kill-btn").addEventListener("click", toggleKillSwitch);
 $("#refresh-audit").addEventListener("click", loadAudit);
+
+$("#announce-close")?.addEventListener("click", () => {
+  $("#announce").classList.add("hidden");
+});
 
 $("#chat-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {

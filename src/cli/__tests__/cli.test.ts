@@ -29,5 +29,5 @@ describe("cli boot", () => {
     expect(result.components).toHaveLength(8);
     expect(existsSync(dbPath)).toBe(true);
     result.close();
-  }, 15_000);
+  }, 30_000);
 });

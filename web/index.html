@@ -3,225 +3,252 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CFO Agent · Demo</title>
+    <meta name="theme-color" content="#4101f6" />
+    <title>CFO Agent · LI.FI × Paystack Index</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="ambient" aria-hidden="true"></div>
-
-    <header class="header">
-      <div class="shell header-inner">
-        <a class="brand" href="/">
-          <span class="brand-mark" aria-hidden="true"></span>
-          <span class="brand-text">
-            <strong>CFO Agent</strong>
-            <span>LI.FI × Paystack Index</span>
-          </span>
-        </a>
-
-        <div class="header-actions">
-          <span class="badge badge-sandbox" id="mode-badge">Sandbox</span>
-          <button type="button" class="kill-toggle" id="kill-btn" aria-pressed="false">
-            <span class="kill-indicator" id="kill-dot"></span>
-            <span class="kill-label">Kill switch</span>
-            <span class="kill-state" id="kill-state">Off</span>
+    <div class="page">
+      <!-- Announcement bar (Locus-style) -->
+      <div class="announce" id="announce">
+        <div class="announce-inner">
+          <span class="announce-badge">Demo</span>
+          <p>
+            Policy-gated agent orchestration — LI.FI liquidity routing + Paystack Index execution
+          </p>
+          <button type="button" class="announce-close" id="announce-close" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
           </button>
         </div>
       </div>
-    </header>
 
-    <main class="shell main">
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Autonomous treasury</p>
-          <h1>Route crypto into NGN commerce</h1>
-          <p class="lede">
-            Policy-gated orchestration. When NGN float runs low, LI.FI supplies liquidity and
-            Paystack Index executes the spend — with a full audit trail.
-          </p>
+      <header class="header" id="header">
+        <div class="header-grid">
+          <a class="logo" href="/">
+            <svg class="logo-wordmark" viewBox="0 0 140 26" fill="none" aria-label="CFO Agent">
+              <text x="0" y="20" fill="#1B1B1C" font-family="Inter, sans-serif" font-size="18" font-weight="600" letter-spacing="-0.02em">CFO Agent</text>
+            </svg>
+          </a>
+
+          <div class="header-mark" aria-hidden="true">
+            <svg viewBox="0 0 33 32" fill="none">
+              <path d="M15.628 32V19.722c0-1.172-.956-2.123-2.127-2.123H8.018v-1.198h5.483c1.836 0 3.331-1.492 3.331-3.324V0h1.201v12.274c0 1.172.956 2.123 2.127 2.123h4.283v1.198H17.628V32z" fill="#1B1B1C"/>
+              <path d="M24.041 15.599h-4.283c-1.836 0-3.331-1.492-3.331-3.324V0h1.201v12.274c0 1.172.956 2.123 2.127 2.123h4.283v1.198z" fill="#1B1B1C"/>
+              <path d="M17.631 24V19.722c0-1.832 1.495-3.324 3.33-3.324H32.058v1.198H20.761c-1.174 0-2.127.954-2.127 2.123V24H17.631z" fill="#1B1B1C"/>
+              <path d="M12.297 15.599H0V14.4h12.297c1.174 0 2.127-.955 2.127-2.124V8.003h1.2v4.276c0 1.832-1.495 3.324-3.33 3.324z" fill="#1B1B1C"/>
+              <path d="M16.028 18.537c0-1.403-1.138-2.539-2.544-2.539 1.406 0 2.544-1.136 2.544-2.539 0 1.403 1.138 2.539 2.544 2.539-1.406 0-2.544 1.136-2.544 2.539z" fill="#1B1B1C"/>
+            </svg>
+          </div>
+
+          <nav class="header-nav" aria-label="Main">
+            <span class="nav-badge" id="mode-badge">Sandbox</span>
+            <button type="button" class="btn-outline btn-sm" id="kill-btn" aria-pressed="false">
+              <span class="kill-dot" id="kill-dot"></span>
+              Kill switch · <span id="kill-state">Off</span>
+            </button>
+          </nav>
         </div>
+      </header>
 
-        <div class="pipeline" aria-label="Orchestration pipeline">
-          <div class="pipe-node">
-            <span class="pipe-icon" data-icon="wallet"></span>
-            <span class="pipe-label">Wallet</span>
-            <span class="pipe-sub">USDC · ETH</span>
+      <main>
+        <!-- Hero -->
+        <section class="hero">
+          <div class="hero-grid-lines" aria-hidden="true"></div>
+          <div class="container hero-inner">
+            <h1 class="hero-title">
+              <span class="hero-line-primary">Agents Can Spend.</span>
+              <span class="hero-line-muted">Policy Makes It Safe.</span>
+            </h1>
+            <p class="hero-sub">
+              Set the rules. Bind them to an agent. Every transfer justified, enforced, and audited.
+              LI.FI routes crypto liquidity; Paystack Index executes NGN commerce.
+            </p>
+            <div class="hero-actions">
+              <button type="button" class="btn-primary" id="run-btn">
+                <span class="btn-run-text">Execute scenario</span>
+                <span class="btn-spinner" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="btn-outline" onclick="document.getElementById('chat-input').focus()">
+                Ask the agent
+              </button>
+            </div>
           </div>
-          <span class="pipe-arrow" aria-hidden="true"></span>
-          <div class="pipe-node pipe-accent">
-            <span class="pipe-icon" data-icon="route"></span>
-            <span class="pipe-label">LI.FI</span>
-            <span class="pipe-sub">Quote &amp; swap</span>
-          </div>
-          <span class="pipe-arrow" aria-hidden="true"></span>
-          <div class="pipe-node">
-            <span class="pipe-icon" data-icon="shield"></span>
-            <span class="pipe-label">Policy</span>
-            <span class="pipe-sub">Caps · velocity</span>
-          </div>
-          <span class="pipe-arrow" aria-hidden="true"></span>
-          <div class="pipe-node pipe-accent">
-            <span class="pipe-icon" data-icon="send"></span>
-            <span class="pipe-label">Index</span>
-            <span class="pipe-sub">Transfer · airtime</span>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="balances" aria-label="Demo balances">
-        <article class="balance-card">
-          <div class="balance-head">
-            <span class="balance-flag ngn">₦</span>
-            <span class="balance-name">NGN float</span>
+        <!-- How it works -->
+        <section class="section">
+          <div class="container">
+            <p class="section-label">How it works</p>
+            <div class="steps-grid">
+              <article class="step-card">
+                <div class="step-card-head">
+                  <div class="step-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 013 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 013 6v3"/></svg>
+                  </div>
+                  <span class="step-num">01</span>
+                </div>
+                <h3>Check float</h3>
+                <p>Agent reads NGN float and crypto balances. When NGN is short, LI.FI quotes a route from USDC.</p>
+              </article>
+              <article class="step-card">
+                <div class="step-card-head">
+                  <div class="step-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                  </div>
+                  <span class="step-num">02</span>
+                </div>
+                <h3>Set rules</h3>
+                <p>Per-tx caps, daily limits, velocity checks, and kill switch — enforced before any move.</p>
+              </article>
+              <article class="step-card">
+                <div class="step-card-head">
+                  <div class="step-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+                  </div>
+                  <span class="step-num">03</span>
+                </div>
+                <h3>Agent pays</h3>
+                <p>Paystack Index executes the NGN transfer or airtime purchase. Every step logged to audit.</p>
+              </article>
+            </div>
           </div>
-          <p class="balance-amount" id="bal-ngn">—</p>
-          <p class="balance-note">Demo float · triggers routing when short</p>
-        </article>
-        <article class="balance-card">
-          <div class="balance-head">
-            <span class="balance-flag usdc">$</span>
-            <span class="balance-name">USDC</span>
-          </div>
-          <p class="balance-amount" id="bal-usdc">—</p>
-          <p class="balance-note">Sepolia testnet</p>
-        </article>
-        <article class="balance-card">
-          <div class="balance-head">
-            <span class="balance-flag eth">Ξ</span>
-            <span class="balance-name">ETH</span>
-          </div>
-          <p class="balance-amount" id="bal-eth">—</p>
-          <p class="balance-note">Gas reserve</p>
-        </article>
-      </section>
+        </section>
 
-      <div class="layout">
-        <div class="layout-primary">
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Run scenario</h2>
-              <p>Pick a flow and execute the full pipeline in dry-run mode.</p>
+        <!-- Demo workspace -->
+        <section class="section section-muted">
+          <div class="container">
+            <p class="section-label">Demo workspace</p>
+            <h2 class="section-title">Run a scenario</h2>
+
+            <div class="balances">
+              <article class="balance-card">
+                <span class="balance-label">NGN float</span>
+                <span class="balance-value" id="bal-ngn">—</span>
+              </article>
+              <article class="balance-card">
+                <span class="balance-label">USDC</span>
+                <span class="balance-value" id="bal-usdc">—</span>
+              </article>
+              <article class="balance-card">
+                <span class="balance-label">ETH</span>
+                <span class="balance-value" id="bal-eth">—</span>
+              </article>
+            </div>
+
+            <div class="policy-row" id="policy-strip">
+              <span>Per-tx cap <strong id="cap-per-tx">—</strong></span>
+              <span>Daily cap <strong id="cap-daily">—</strong></span>
+              <span>Confirm above <strong id="cap-confirm">—</strong></span>
             </div>
 
             <div class="scenario-grid">
-              <button type="button" class="scenario choice active" data-scenario="mom">
-                <span class="scenario-icon" aria-hidden="true">↗</span>
-                <span class="scenario-body">
-                  <span class="scenario-title">Send ₦50,000 to mom</span>
-                  <span class="scenario-desc">₦10k float · route ₦40k from USDC via LI.FI</span>
+              <button type="button" class="scenario-card choice active" data-scenario="mom">
+                <span class="scenario-num">A</span>
+                <span class="scenario-text">
+                  <strong>Send ₦50,000 to mom</strong>
+                  <span>₦10k float · route ₦40k from USDC</span>
                 </span>
-                <span class="scenario-check" aria-hidden="true"></span>
               </button>
-              <button type="button" class="scenario choice" data-scenario="airtime">
-                <span class="scenario-icon airtime" aria-hidden="true">◎</span>
-                <span class="scenario-body">
-                  <span class="scenario-title">Buy ₦2,000 airtime</span>
-                  <span class="scenario-desc">Paystack Index MCP · MTN · policy-gated</span>
+              <button type="button" class="scenario-card choice" data-scenario="airtime">
+                <span class="scenario-num">B</span>
+                <span class="scenario-text">
+                  <strong>Buy ₦2,000 airtime</strong>
+                  <span>Paystack Index MCP · MTN</span>
                 </span>
-                <span class="scenario-check" aria-hidden="true"></span>
               </button>
             </div>
+          </div>
+        </section>
 
-            <div class="policy-strip" id="policy-strip">
-              <span><strong>Per-tx cap</strong> <em id="cap-per-tx">—</em></span>
-              <span><strong>Daily cap</strong> <em id="cap-daily">—</em></span>
-              <span><strong>Confirm above</strong> <em id="cap-confirm">—</em></span>
-            </div>
+        <!-- Live trace + agent -->
+        <section class="section">
+          <div class="container">
+            <div class="workspace-grid">
+              <div class="workspace-col">
+                <div class="panel">
+                  <div class="panel-head">
+                    <div>
+                      <p class="section-label inline">Execution</p>
+                      <h2 class="panel-title">Timeline</h2>
+                    </div>
+                    <button type="button" class="btn-ghost btn-sm" id="refresh-audit">Refresh log</button>
+                  </div>
 
-            <button type="button" class="btn-run" id="run-btn">
-              <span class="btn-run-text">Execute scenario</span>
-              <span class="btn-run-spinner" aria-hidden="true"></span>
-            </button>
-          </section>
+                  <ol class="timeline" id="steps">
+                    <li class="tl-step idle">
+                      <span class="tl-dot"></span>
+                      <div class="tl-body">
+                        <strong>Ready</strong>
+                        <p>Execute a scenario to run the pipeline</p>
+                      </div>
+                    </li>
+                  </ol>
 
-          <section class="panel panel-chat">
-            <div class="panel-header">
-              <h2>Claude agent</h2>
-              <p>Natural-language commands · requires <code>ANTHROPIC_API_KEY</code></p>
-            </div>
-
-            <div class="chat-thread" id="chat-reply">
-              <div class="chat-bubble assistant">
-                <p>Try: “Send ₦50,000 to mom. I have ₦10,000 NGN float.”</p>
-              </div>
-            </div>
-
-            <div class="chat-compose">
-              <textarea
-                id="chat-input"
-                rows="2"
-                placeholder="Ask the agent to send money or buy airtime…"
-              ></textarea>
-              <button type="button" class="btn-send" id="chat-btn" aria-label="Send message">
-                Send
-              </button>
-            </div>
-          </section>
-        </div>
-
-        <div class="layout-secondary">
-          <section class="panel panel-timeline">
-            <div class="panel-header row">
-              <div>
-                <h2>Execution timeline</h2>
-                <p>Live step-by-step orchestration trace</p>
-              </div>
-              <button type="button" class="btn-ghost" id="refresh-audit">Refresh log</button>
-            </div>
-
-            <ol class="stepper" id="steps">
-              <li class="step idle">
-                <div class="step-rail"><span class="step-dot"></span></div>
-                <div class="step-content">
-                  <strong>Ready</strong>
-                  <p>Execute a scenario to run the pipeline</p>
+                  <div class="audit-block">
+                    <h3>Policy audit log</h3>
+                    <div class="audit-scroll">
+                      <table>
+                        <thead>
+                          <tr><th>Decision</th><th>Action</th><th>Reason</th></tr>
+                        </thead>
+                        <tbody id="audit-body">
+                          <tr><td colspan="3" class="empty">No entries yet</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </li>
-            </ol>
 
-            <div class="audit">
-              <h3>Policy audit log</h3>
-              <div class="audit-table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Decision</th>
-                      <th>Action</th>
-                      <th>Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody id="audit-body">
-                    <tr><td colspan="3" class="empty">No entries yet</td></tr>
-                  </tbody>
-                </table>
+                <div class="panel">
+                  <p class="section-label">Integration stack</p>
+                  <h2 class="panel-title">What's wired</h2>
+                  <ul class="stack-list" id="stack-list"></ul>
+                </div>
+              </div>
+
+              <div class="workspace-col">
+                <div class="panel panel-chat">
+                  <p class="section-label">Claude agent</p>
+                  <h2 class="panel-title">Natural language</h2>
+                  <p class="panel-desc">Requires <code>ANTHROPIC_API_KEY</code> in .env</p>
+
+                  <div class="chat-thread" id="chat-reply">
+                    <div class="chat-msg assistant">
+                      <p>Try: “Send ₦50,000 to mom. I have ₦10,000 NGN float.”</p>
+                    </div>
+                  </div>
+
+                  <div class="chat-compose">
+                    <textarea id="chat-input" rows="3" placeholder="Ask the agent to send money or buy airtime…"></textarea>
+                    <button type="button" class="btn-primary btn-send" id="chat-btn">Send</button>
+                  </div>
+                </div>
               </div>
             </div>
-          </section>
+          </div>
+        </section>
+      </main>
 
-          <section class="panel panel-stack">
-            <div class="panel-header">
-              <h2>Integration stack</h2>
-              <p>What’s wired vs simulated in this build</p>
-            </div>
-            <ul class="stack-grid" id="stack-list"></ul>
-          </section>
+      <footer class="footer">
+        <div class="container footer-inner">
+          <span class="footer-tagline">Make Them Pay</span>
+          <div class="footer-meta">
+            <span>Experimental showcase</span>
+            <code>pnpm demo</code>
+          </div>
         </div>
-      </div>
-    </main>
-
-    <footer class="shell footer">
-      <span>Experimental showcase · not production-ready</span>
-      <code>pnpm demo</code>
-    </footer>
+      </footer>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
     <script src="/app.js" type="module"></script>
   </body>
 </html>

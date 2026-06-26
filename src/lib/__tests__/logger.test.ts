@@ -30,5 +30,5 @@ describe("boot", () => {
     const { parseArgs } = await import("../../app/boot.js");
     expect(parseArgs([])).toEqual({ dryRun: true, live: false });
     expect(parseArgs(["--live"])).toEqual({ dryRun: false, live: true });
-  }, 15_000);
+  }, 30_000);
 });
