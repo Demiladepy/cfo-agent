@@ -1,0 +1,19 @@
+node_modules/
+dist/
+
+# Environment files (keep .env.example for docs)
+.env
+.env.*
+!.env.example
+
+data/
+config/policy.yaml
+config/wallet.yaml
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+logs/
+tmp/
+.DS_Store
+coverage/

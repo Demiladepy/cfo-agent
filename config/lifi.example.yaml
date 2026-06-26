@@ -1,0 +1,9 @@
+max_slippage_bps: 100
+max_hops: 3
+max_fee_percent: 2.5
+route_max_age_seconds: 60
+
+default_from_chain_id: 11155111
+default_to_chain_id: 11155111
+default_from_token: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+default_to_token: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"

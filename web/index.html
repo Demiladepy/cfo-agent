@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CFO Agent · Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"></div>
+
+    <header class="header">
+      <div class="shell header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-text">
+            <strong>CFO Agent</strong>
+            <span>LI.FI × Paystack Index</span>
+          </span>
+        </a>
+
+        <div class="header-actions">
+          <span class="badge badge-sandbox" id="mode-badge">Sandbox</span>
+          <button type="button" class="kill-toggle" id="kill-btn" aria-pressed="false">
+            <span class="kill-indicator" id="kill-dot"></span>
+            <span class="kill-label">Kill switch</span>
+            <span class="kill-state" id="kill-state">Off</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell main">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Autonomous treasury</p>
+          <h1>Route crypto into NGN commerce</h1>
+          <p class="lede">
+            Policy-gated orchestration. When NGN float runs low, LI.FI supplies liquidity and
+            Paystack Index executes the spend — with a full audit trail.
+          </p>
+        </div>
+
+        <div class="pipeline" aria-label="Orchestration pipeline">
+          <div class="pipe-node">
+            <span class="pipe-icon" data-icon="wallet"></span>
+            <span class="pipe-label">Wallet</span>
+            <span class="pipe-sub">USDC · ETH</span>
+          </div>
+          <span class="pipe-arrow" aria-hidden="true"></span>
+          <div class="pipe-node pipe-accent">
+            <span class="pipe-icon" data-icon="route"></span>
+            <span class="pipe-label">LI.FI</span>
+            <span class="pipe-sub">Quote &amp; swap</span>
+          </div>
+          <span class="pipe-arrow" aria-hidden="true"></span>
+          <div class="pipe-node">
+            <span class="pipe-icon" data-icon="shield"></span>
+            <span class="pipe-label">Policy</span>
+            <span class="pipe-sub">Caps · velocity</span>
+          </div>
+          <span class="pipe-arrow" aria-hidden="true"></span>
+          <div class="pipe-node pipe-accent">
+            <span class="pipe-icon" data-icon="send"></span>
+            <span class="pipe-label">Index</span>
+            <span class="pipe-sub">Transfer · airtime</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="balances" aria-label="Demo balances">
+        <article class="balance-card">
+          <div class="balance-head">
+            <span class="balance-flag ngn">₦</span>
+            <span class="balance-name">NGN float</span>
+          </div>
+          <p class="balance-amount" id="bal-ngn">—</p>
+          <p class="balance-note">Demo float · triggers routing when short</p>
+        </article>
+        <article class="balance-card">
+          <div class="balance-head">
+            <span class="balance-flag usdc">$</span>
+            <span class="balance-name">USDC</span>
+          </div>
+          <p class="balance-amount" id="bal-usdc">—</p>
+          <p class="balance-note">Sepolia testnet</p>
+        </article>
+        <article class="balance-card">
+          <div class="balance-head">
+            <span class="balance-flag eth">Ξ</span>
+            <span class="balance-name">ETH</span>
+          </div>
+          <p class="balance-amount" id="bal-eth">—</p>
+          <p class="balance-note">Gas reserve</p>
+        </article>
+      </section>
+
+      <div class="layout">
+        <div class="layout-primary">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Run scenario</h2>
+              <p>Pick a flow and execute the full pipeline in dry-run mode.</p>
+            </div>
+
+            <div class="scenario-grid">
+              <button type="button" class="scenario choice active" data-scenario="mom">
+                <span class="scenario-icon" aria-hidden="true">↗</span>
+                <span class="scenario-body">
+                  <span class="scenario-title">Send ₦50,000 to mom</span>
+                  <span class="scenario-desc">₦10k float · route ₦40k from USDC via LI.FI</span>
+                </span>
+                <span class="scenario-check" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="scenario choice" data-scenario="airtime">
+                <span class="scenario-icon airtime" aria-hidden="true">◎</span>
+                <span class="scenario-body">
+                  <span class="scenario-title">Buy ₦2,000 airtime</span>
+                  <span class="scenario-desc">Paystack Index MCP · MTN · policy-gated</span>
+                </span>
+                <span class="scenario-check" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div class="policy-strip" id="policy-strip">
+              <span><strong>Per-tx cap</strong> <em id="cap-per-tx">—</em></span>
+              <span><strong>Daily cap</strong> <em id="cap-daily">—</em></span>
+              <span><strong>Confirm above</strong> <em id="cap-confirm">—</em></span>
+            </div>
+
+            <button type="button" class="btn-run" id="run-btn">
+              <span class="btn-run-text">Execute scenario</span>
+              <span class="btn-run-spinner" aria-hidden="true"></span>
+            </button>
+          </section>
+
+          <section class="panel panel-chat">
+            <div class="panel-header">
+              <h2>Claude agent</h2>
+              <p>Natural-language commands · requires <code>ANTHROPIC_API_KEY</code></p>
+            </div>
+
+            <div class="chat-thread" id="chat-reply">
+              <div class="chat-bubble assistant">
+                <p>Try: “Send ₦50,000 to mom. I have ₦10,000 NGN float.”</p>
+              </div>
+            </div>
+
+            <div class="chat-compose">
+              <textarea
+                id="chat-input"
+                rows="2"
+                placeholder="Ask the agent to send money or buy airtime…"
+              ></textarea>
+              <button type="button" class="btn-send" id="chat-btn" aria-label="Send message">
+                Send
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <div class="layout-secondary">
+          <section class="panel panel-timeline">
+            <div class="panel-header row">
+              <div>
+                <h2>Execution timeline</h2>
+                <p>Live step-by-step orchestration trace</p>
+              </div>
+              <button type="button" class="btn-ghost" id="refresh-audit">Refresh log</button>
+            </div>
+
+            <ol class="stepper" id="steps">
+              <li class="step idle">
+                <div class="step-rail"><span class="step-dot"></span></div>
+                <div class="step-content">
+                  <strong>Ready</strong>
+                  <p>Execute a scenario to run the pipeline</p>
+                </div>
+              </li>
+            </ol>
+
+            <div class="audit">
+              <h3>Policy audit log</h3>
+              <div class="audit-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Decision</th>
+                      <th>Action</th>
+                      <th>Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody id="audit-body">
+                    <tr><td colspan="3" class="empty">No entries yet</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel panel-stack">
+            <div class="panel-header">
+              <h2>Integration stack</h2>
+              <p>What’s wired vs simulated in this build</p>
+            </div>
+            <ul class="stack-grid" id="stack-list"></ul>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="shell footer">
+      <span>Experimental showcase · not production-ready</span>
+      <code>pnpm demo</code>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

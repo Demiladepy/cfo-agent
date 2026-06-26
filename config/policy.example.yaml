@@ -1,0 +1,25 @@
+# Copy to config/policy.yaml (gitignored) and adjust for your operator profile.
+
+per_tx_cap_ngn: 100000
+daily_cap_ngn: 500000
+weekly_cap_ngn: 2000000
+confirm_threshold_ngn: 50000
+
+velocity:
+  max_actions: 10
+  window_seconds: 3600
+
+allowlist:
+  crypto_addresses:
+    - "0x0000000000000000000000000000000000000001"
+  index_recipient_categories:
+    - family
+    - bills
+    - food
+    - airtime
+
+category_caps:
+  food:
+    daily_ngn: 15000
+  airtime:
+    daily_ngn: 10000
