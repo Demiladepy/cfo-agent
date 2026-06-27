@@ -25,7 +25,7 @@ describe("cli boot", () => {
     const { boot } = await import("../../app/boot.js");
     const result = boot([]);
     expect(result.dryRun).toBe(true);
-    expect(result.migrationsApplied).toEqual([1]);
+    expect(result.migrationsApplied).toEqual([1, 2]);
     expect(result.components).toHaveLength(8);
     expect(existsSync(dbPath)).toBe(true);
     result.close();

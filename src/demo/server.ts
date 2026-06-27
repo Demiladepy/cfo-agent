@@ -13,6 +13,12 @@ import { runClaudeAgent } from "../agent/claude.js";
 import { loadEnv } from "../config/env.js";
 import type { AppContext } from "../app/create-tools.js";
 import { buildDemoStatus } from "./status.js";
+import {
+  attachPriorActionsToPending,
+  parsePendingForApi,
+  resolvePendingConfirmation,
+} from "../confirm/bridge.js";
+import { listActivePendingConfirmations, getPendingConfirmation } from "../memory/pending-confirmations.js";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -50,12 +56,13 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
 function actionsToSteps(
   actions: AgentAction[],
   intent: { amountNgn: number; ngnBalanceNgn: number },
-): Array<{ id: string; label: string; detail: string; status: "done" | "error" }> {
+  options?: { awaitingConfirmation?: boolean; confirmReason?: string },
+): Array<{ id: string; label: string; detail: string; status: "done" | "error" | "pending" }> {
   const steps: Array<{
     id: string;
     label: string;
     detail: string;
-    status: "done" | "error";
+    status: "done" | "error" | "pending";
   }> = [
     {
       id: "balance",
@@ -105,15 +112,18 @@ function actionsToSteps(
 
   const transfer = actions.find((a) => a.type === "transfer_complete");
   const failed = actions.find((a) => a.type === "insufficient_funds");
+  const awaiting = options?.awaitingConfirmation;
   steps.push({
     id: "index",
     label: "Paystack Index — NGN transfer",
     detail: transfer
       ? `Complete · ref ${transfer.reference}${transfer.simulated ? " (simulated)" : ""}`
-      : failed?.type === "insufficient_funds"
-        ? failed.message
-        : "Pending",
-    status: transfer ? "done" : "error",
+      : awaiting
+        ? `Awaiting operator approval — ${options?.confirmReason ?? "policy confirm threshold"}`
+        : failed?.type === "insufficient_funds"
+          ? failed.message
+          : "Pending",
+    status: transfer ? "done" : awaiting ? "pending" : "error",
   });
 
   return steps;
@@ -169,6 +179,59 @@ export function createDemoServer(options: DemoServerOptions) {
         return json(res, 200, { ok: true, killSwitchActive: false });
       }
 
+      if (method === "GET" && url.pathname === "/api/confirm/pending") {
+        const rows = listActivePendingConfirmations(context.store);
+        return json(res, 200, {
+          pending: rows.map((row) => parsePendingForApi(row)),
+        });
+      }
+
+      const confirmMatch = url.pathname.match(/^\/api\/confirm\/([^/]+)$/);
+      if (method === "POST" && confirmMatch) {
+        const pendingId = decodeURIComponent(confirmMatch[1] ?? "");
+        const body = (await readJsonBody(req)) as { decision?: string };
+        const decision = body.decision === "y" || body.decision === "n" ? body.decision : null;
+        if (!decision) {
+          return json(res, 400, { error: "decision must be 'y' or 'n'" });
+        }
+
+        const result = await resolvePendingConfirmation(
+          {
+            store: context.store,
+            dryRun: context.dryRun,
+            killSwitchPath: context.killSwitchPath,
+            confirmBridge: context.confirmBridge,
+            index: context.tools.index,
+          },
+          pendingId,
+          decision,
+        );
+
+        if (!result.ok) {
+          return json(res, result.status, {
+            ok: false,
+            error: result.error,
+            ...(result.expired ? { expired: true } : {}),
+          });
+        }
+
+        const approvedRow = getPendingConfirmation(context.store, pendingId);
+        const parsed = approvedRow ? parsePendingForApi(approvedRow) : null;
+        const ngnBalance = parsed?.action.ngnBalanceNgn ?? 0;
+        const amountNgn = parsed?.action.intent.amountNgn ?? 0;
+
+        return json(res, 200, {
+          ok: true,
+          reference: result.reference,
+          simulated: result.simulated,
+          actions: result.actions,
+          steps: actionsToSteps(result.actions, {
+            amountNgn,
+            ngnBalanceNgn: ngnBalance,
+          }),
+        });
+      }
+
       if (method === "POST" && url.pathname === "/api/demo/send") {
         const body = (await readJsonBody(req)) as {
           amountNgn?: number;
@@ -189,11 +252,42 @@ export function createDemoServer(options: DemoServerOptions) {
         const floatBefore = await context.tools.index.getNgnBalance();
         const ngnForSteps = floatBefore.ok ? floatBefore.value.balanceNgn : 0;
 
+        context.confirmBridge?.clearLastPending();
+
         const actions = await executeSendNgnFlow(
           context.tools,
           intent,
           context.dryRun,
         );
+
+        const pendingId = context.confirmBridge?.lastPendingId ?? null;
+        if (pendingId) {
+          attachPriorActionsToPending(
+            context.store,
+            pendingId,
+            actions.filter((a) => a.type !== "insufficient_funds"),
+            ngnForSteps,
+          );
+          const pending = parsePendingForApi(
+            getPendingConfirmation(context.store, pendingId)!,
+          );
+          return json(res, 202, {
+            ok: false,
+            confirmRequired: true,
+            pendingConfirmationId: pendingId,
+            reason: pending.reason,
+            caps: pending.caps,
+            action: pending.action,
+            actions,
+            steps: actionsToSteps(actions, {
+              amountNgn: intent.amountNgn,
+              ngnBalanceNgn: ngnForSteps,
+            }, {
+              awaitingConfirmation: true,
+              confirmReason: pending.reason,
+            }),
+          });
+        }
 
         const ok = actions.some((a) => a.type === "transfer_complete");
         return json(res, 200, {

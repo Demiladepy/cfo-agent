@@ -19,6 +19,13 @@ import {
   type TransferRequest,
 } from "./types.js";
 
+export type ConfirmRequiredContext = {
+  reason: string;
+  policyAction: import("../policy/types.js").PolicyAction;
+  spendCategory: string;
+  request: AirtimeRequest | TransferRequest;
+};
+
 export type IndexClientDeps = {
   mcp: IndexMcpTools;
   policy: PolicyEngine;
@@ -27,7 +34,7 @@ export type IndexClientDeps = {
   dryRun: boolean;
   liveMcp?: boolean;
   fallbackBalanceNgn?: number;
-  onConfirmRequired?: (reason: string) => Promise<boolean>;
+  onConfirmRequired?: (ctx: ConfirmRequiredContext) => Promise<boolean>;
 };
 
 function mapSpendAction(
@@ -107,11 +114,16 @@ export function createIndexClient(deps: IndexClientDeps) {
     }
     if (policyResult.value.decision === "confirm") {
       if (deps.onConfirmRequired) {
-        const approved = await deps.onConfirmRequired(policyResult.value.reason);
+        const approved = await deps.onConfirmRequired({
+          reason: policyResult.value.reason,
+          policyAction,
+          spendCategory: category,
+          request: req,
+        });
         if (!approved) {
           return err({
             code: "CONFIRM_REQUIRED",
-            message: `operator declined: ${policyResult.value.reason}`,
+            message: `confirmation pending: ${policyResult.value.reason}`,
           });
         }
       } else {

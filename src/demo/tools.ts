@@ -16,5 +16,6 @@ export function createDemoContext(options: {
     dryRun: options.dryRun ?? true,
     useDemoPolicy: true,
     mockWalletRpc: options.mockWalletRpc ?? false,
+    enableConfirmBridge: true,
   });
 }

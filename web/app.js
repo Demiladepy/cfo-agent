@@ -3,6 +3,7 @@ const $$ = (sel) => document.querySelectorAll(sel);
 
 let activeScenario = "mom";
 let killActive = false;
+let activePendingId = null;
 
 const SCENARIOS = {
   mom: {
@@ -113,6 +114,57 @@ function escapeHtml(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function renderConfirmBanner(pending) {
+  const banner = $("#confirm-banner");
+  if (!pending) {
+    banner.classList.add("hidden");
+    activePendingId = null;
+    return;
+  }
+
+  activePendingId = pending.id;
+  banner.classList.remove("hidden");
+  $("#confirm-reason").textContent = pending.reason;
+
+  const action = pending.action;
+  const caps = pending.caps;
+  const details = $("#confirm-details");
+  details.innerHTML = `
+    <div><dt>Transfer</dt><dd>${formatNgn(action.intent.amountNgn)} → ${escapeHtml(action.intent.recipientId)}</dd></div>
+    <div><dt>Category</dt><dd>${escapeHtml(action.intent.recipientCategory)}</dd></div>
+    <div><dt>Daily cap use</dt><dd>${formatNgn(caps.dailySpentNgn)} + ${formatNgn(caps.wouldConsumeNgn)} of ${formatNgn(caps.dailyCapNgn)}</dd></div>
+    <div><dt>Confirm threshold</dt><dd>${formatNgn(caps.confirmThresholdNgn)}</dd></div>
+    <div><dt>Expires</dt><dd>${escapeHtml(pending.expiresAt)} UTC</dd></div>`;
+}
+
+async function loadPendingConfirmations() {
+  const data = await api("/api/confirm/pending");
+  const pending = data.pending?.[0] ?? null;
+  renderConfirmBanner(pending);
+  return pending;
+}
+
+async function submitConfirmation(decision) {
+  if (!activePendingId) return;
+  const data = await api(`/api/confirm/${activePendingId}`, {
+    method: "POST",
+    body: JSON.stringify({ decision }),
+  });
+  if (data.ok && data.steps) {
+    renderSteps(data.steps);
+    showToast("Transfer approved and completed");
+  } else if (data.expired) {
+    showToast("Confirmation expired — request a new transfer");
+  } else if (decision === "n" || data.error?.includes("denied")) {
+    showToast("Transfer denied");
+  } else {
+    showToast(data.error ?? "Confirmation failed");
+  }
+  await loadPendingConfirmations();
+  await loadAudit();
+  return data;
 }
 
 function showToast(message) {
@@ -267,8 +319,13 @@ async function runScenario() {
         method: "POST",
         body: JSON.stringify(scenario.body),
       });
-      renderSteps(data.steps);
-      showToast(data.ok ? "Scenario completed successfully" : "Scenario finished with errors");
+      renderSteps(data.steps ?? [], !data.confirmRequired);
+      if (data.confirmRequired) {
+        await loadPendingConfirmations();
+        showToast("Policy confirmation required — approve or deny above");
+      } else {
+        showToast(data.ok ? "Scenario completed successfully" : "Scenario finished with errors");
+      }
     } else {
       const data = await api(scenario.endpoint, {
         method: "POST",
@@ -312,6 +369,8 @@ $$(".choice").forEach((el) => {
 $("#run-btn").addEventListener("click", runScenario);
 $("#kill-btn").addEventListener("click", toggleKillSwitch);
 $("#refresh-audit").addEventListener("click", loadAudit);
+$("#confirm-approve").addEventListener("click", () => submitConfirmation("y"));
+$("#confirm-deny").addEventListener("click", () => submitConfirmation("n"));
 
 $("#announce-close")?.addEventListener("click", () => {
   $("#announce").classList.add("hidden");
@@ -352,3 +411,4 @@ $("#chat-btn").addEventListener("click", async () => {
 
 loadStatus();
 loadAudit();
+loadPendingConfirmations();

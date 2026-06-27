@@ -63,7 +63,9 @@ describe("index client", () => {
       store,
       env: { LIVE_EXECUTION: false },
       dryRun: true,
-      onConfirmRequired: opts?.onConfirm,
+      onConfirmRequired: opts?.onConfirm
+        ? async () => opts.onConfirm!()
+        : undefined,
     });
   }
 

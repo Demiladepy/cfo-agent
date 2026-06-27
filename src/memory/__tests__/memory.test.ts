@@ -35,8 +35,9 @@ describe("database migrations", () => {
   it("migrates from empty database", () => {
     expect(getAppliedVersions(db).size).toBe(0);
     const applied = migrate(db);
-    expect(applied).toEqual([1]);
+    expect(applied).toEqual([1, 2]);
     expect(getAppliedVersions(db).has(1)).toBe(true);
+    expect(getAppliedVersions(db).has(2)).toBe(true);
   });
 
   it("is idempotent on second run", () => {
@@ -56,6 +57,7 @@ describe("database migrations", () => {
     expect(names).toContain("events");
     expect(names).toContain("facts");
     expect(names).toContain("audit_log");
+    expect(names).toContain("pending_confirmations");
     expect(names).toContain("schema_migrations");
   });
 });

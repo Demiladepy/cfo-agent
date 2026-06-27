@@ -46,18 +46,17 @@ describe("demo server", () => {
     rmSync(dataDir, { recursive: true, force: true });
   });
 
-  it("returns status and runs send scenario", async () => {
+  it("returns demo status payload", async () => {
     const status = (await fetch(`${baseUrl}/api/status`).then((r) =>
       r.json(),
     )) as {
       dryRun: boolean;
       sandbox: boolean;
       balances: {
-        ngn: { value: number | null; source: string };
         usdc: { value: number | null; source: string };
         eth: { value: number | null; source: string };
       };
-      layers: Array<{ id: string; status: string }>;
+      layers: Array<{ id: string }>;
     };
 
     expect(status.dryRun).toBe(true);
@@ -66,21 +65,6 @@ describe("demo server", () => {
     expect(status.balances.usdc.value).toBe(25);
     expect(status.balances.eth.value).toBe(0.001);
     expect(status.layers.some((l) => l.id === "wallet")).toBe(true);
-
-    const result = (await fetch(`${baseUrl}/api/demo/send`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amountNgn: 50_000,
-      }),
-    }).then((r) => r.json())) as {
-      ok: boolean;
-      steps: Array<{ id: string }>;
-    };
-
-    expect(result.ok).toBe(true);
-    expect(result.steps.some((s: { id: string }) => s.id === "lifi")).toBe(true);
-    expect(result.steps.some((s: { id: string }) => s.id === "index")).toBe(true);
   });
 
   it("blocks send when kill switch active", async () => {
@@ -91,5 +75,19 @@ describe("demo server", () => {
       body: JSON.stringify({ amountNgn: 5_000 }),
     }).then((r) => r.json())) as { ok: boolean };
     expect(result.ok).toBe(false);
+  });
+
+  it("completes sub-threshold send without confirmation", async () => {
+    const result = (await fetch(`${baseUrl}/api/demo/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amountNgn: 5_000 }),
+    }).then((r) => r.json())) as {
+      ok: boolean;
+      confirmRequired?: boolean;
+    };
+
+    expect(result.confirmRequired).toBeFalsy();
+    expect(result.ok).toBe(true);
   });
 });

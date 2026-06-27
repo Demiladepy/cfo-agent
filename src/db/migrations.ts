@@ -45,4 +45,25 @@ export const migrations: Migration[] = [
       `);
     },
   },
+  {
+    version: 2,
+    name: "pending_confirmations",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS pending_confirmations (
+          id TEXT PRIMARY KEY,
+          action_json TEXT NOT NULL,
+          policy_snapshot_json TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          expires_at TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending'
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_pending_confirmations_status
+          ON pending_confirmations(status);
+        CREATE INDEX IF NOT EXISTS idx_pending_confirmations_expires_at
+          ON pending_confirmations(expires_at);
+      `);
+    },
+  },
 ];

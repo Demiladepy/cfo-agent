@@ -58,6 +58,21 @@
         </div>
       </header>
 
+      <div class="confirm-banner hidden" id="confirm-banner" role="region" aria-labelledby="confirm-title">
+        <div class="container confirm-banner-inner">
+          <div class="confirm-copy">
+            <p class="confirm-eyebrow">Policy confirmation required</p>
+            <h2 class="confirm-title" id="confirm-title">Approve transfer?</h2>
+            <p class="confirm-reason" id="confirm-reason"></p>
+            <dl class="confirm-details" id="confirm-details"></dl>
+          </div>
+          <div class="confirm-actions">
+            <button type="button" class="btn-outline" id="confirm-deny">Deny</button>
+            <button type="button" class="btn-primary" id="confirm-approve">Approve</button>
+          </div>
+        </div>
+      </div>
+
       <main>
         <!-- Hero -->
         <section class="hero">

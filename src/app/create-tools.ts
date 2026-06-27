@@ -22,6 +22,8 @@ import type { KeystoreFile } from "../wallet/types.js";
 import type { AgentTools } from "../agent/runner.js";
 import type { PolicyConfig } from "../policy/types.js";
 import type { PolicyEngine } from "../policy/engine.js";
+import type { ConfirmBridge } from "../confirm/bridge.js";
+import { createConfirmBridge } from "../confirm/bridge.js";
 
 export type AppTools = AgentTools & {
   policyConfig: PolicyConfig;
@@ -37,6 +39,7 @@ export type AppContext = {
   dryRun: boolean;
   killSwitchPath: string;
   mockWalletRpc: boolean;
+  confirmBridge: ConfirmBridge | null;
   close: () => void;
 };
 
@@ -44,7 +47,7 @@ const DEMO_POLICY: PolicyConfig = {
   per_tx_cap_ngn: 500_000,
   daily_cap_ngn: 2_000_000,
   weekly_cap_ngn: 5_000_000,
-  confirm_threshold_ngn: 200_000,
+  confirm_threshold_ngn: 50_000,
   velocity: { max_actions: 100, window_seconds: 3600 },
   allowlist: {
     crypto_addresses: ["0x0000000000000000000000000000000000000001"],
@@ -88,6 +91,7 @@ export function createAppContext(options: {
   dryRun?: boolean;
   useDemoPolicy?: boolean;
   mockWalletRpc?: boolean;
+  enableConfirmBridge?: boolean;
 }): AppContext {
   const { env } = options;
   const dryRun = options.dryRun ?? !env.LIVE_EXECUTION;
@@ -121,6 +125,15 @@ export function createAppContext(options: {
     store,
     isKillSwitchActive: () => isKillSwitchActive(options.killSwitchPath),
   });
+
+  const confirmBridge =
+    options.enableConfirmBridge === false
+      ? null
+      : createConfirmBridge({
+          store,
+          killSwitchPath: options.killSwitchPath,
+          policyConfig,
+        });
 
   const keystorePath = join(options.dataDir, "keystore.json");
   const passphrase = env.WALLET_PASSPHRASE ?? "demo-pass";
@@ -181,6 +194,9 @@ export function createAppContext(options: {
     env: { LIVE_EXECUTION: env.LIVE_EXECUTION },
     dryRun,
     liveMcp: indexMode === "live",
+    ...(confirmBridge
+      ? { onConfirmRequired: (ctx) => confirmBridge.onConfirmRequired(ctx) }
+      : {}),
   });
 
   const offrampProvider = resolveOfframpProvider({ env });
@@ -215,6 +231,7 @@ export function createAppContext(options: {
     dryRun,
     killSwitchPath: options.killSwitchPath,
     mockWalletRpc: options.mockWalletRpc ?? false,
+    confirmBridge,
     close: () => closeDatabase(db),
   };
 }

@@ -192,6 +192,72 @@ body {
   color: var(--ok);
 }
 
+.confirm-banner {
+  background: linear-gradient(180deg, #f5f3ff 0%, #fff 100%);
+  border-bottom: 1px solid var(--brand-light);
+  padding: 20px 0;
+}
+
+.confirm-banner.hidden {
+  display: none;
+}
+
+.confirm-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px 32px;
+}
+
+.confirm-eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.confirm-reason {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 52ch;
+}
+
+.confirm-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 20px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.confirm-details dt {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.confirm-details dd {
+  margin: 2px 0 0;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 /* ── Buttons ── */
 
 .btn-primary {
@@ -785,6 +851,11 @@ body {
 .tl-step.done .tl-dot {
   background: var(--ok);
   box-shadow: 0 0 0 4px var(--ok-soft);
+}
+
+.tl-step.pending .tl-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 4px #fef3c7;
 }
 
 .tl-step.error .tl-dot {
