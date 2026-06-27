@@ -140,3 +140,40 @@ Drafts only. Operator publishes.
 - `pnpm audit tail [n]`
 - `pnpm kill`
 - `pnpm resume` (requires confirmation)
+
+## Post-M8 fixes (M9–M13)
+
+Work after the original M8 milestone. M0–M8 history above is unchanged.
+
+### M9 — Value loop
+- `index.getNgnBalance()` with MCP balance tool discovery (`INDEX_MCP_BALANCE_TOOL` override)
+- Off-ramp wired into `executeSendNgnFlow`: wallet → LI.FI → off-ramp → Index transfer
+- Live FX via `fx.getUsdToNgn()` (Juicyway rate + `FX_FALLBACK_USD_NGN` fallback)
+- Policy `category_caps.offramp` for off-ramp notional
+
+### M10 — Demo realness
+- `/api/status` returns honest balances: `live` | `mock` | `unavailable` — never fabricated numbers
+- Sandbox badge when any layer is simulated or dry-run
+- Integration strip per layer (wallet, Index, LI.FI, Claude)
+- Sepolia RPC default updated to Cloudflare public gateway
+
+### M11 — Confirm flow
+- SQLite `pending_confirmations` table with TTL expiry
+- Confirm bridge wired into Index client; never auto-approves
+- Demo HTTP: `POST /api/demo/send` → `202` + pending id; `GET/POST /api/confirm/*`
+- Demo UI confirmation banner with approve/deny
+- Audit subtypes: `confirmation_requested`, `confirmation_decided`, etc.
+
+### M12 — Interactive CLI REPL
+- `pnpm dev` opens REPL (`src/cli/repl.ts`) using shared `createAppContext`
+- Commands: status, send, airtime, quote, policy, audit, confirm, kill, resume, live on/off
+- Session live mode recreates context with `dryRun: false` when env allows
+- CLI integration tests for send → audit path
+
+### M13 — Live triggers
+- `TRIGGERS_ENABLED=true` (default off) starts `TriggerManager` cron scheduler
+- Jobs: `rebalance-check` (`TRIGGERS_REBALANCE_CRON`, default `*/15 * * * *`), `reflection` (daily 23:00 local)
+- Rebalance: `executeRebalanceTopup` via policy + LI.FI + off-ramp; confirm threshold → pending + alert
+- **Hard rule:** first trigger run after process boot always dry-run regardless of `LIVE_EXECUTION`
+- Pause/resume via `data/<app>/triggers/<job>.pause`; demo Triggers panel + CLI `triggers` commands
+- Triggers disabled when `NODE_ENV=test` unless tests opt in explicitly
