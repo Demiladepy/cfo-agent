@@ -38,6 +38,24 @@ describe("juicyway provider", () => {
     expect(result.ngnAmount).toBe(150_000);
     expect(fetchFn).toHaveBeenCalledTimes(3);
   });
+
+  it("quotes USD/NGN from FX lock endpoint", async () => {
+    const fetchFn = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { id: "rate-1", target_amount: 1_600_000 } }),
+    });
+
+    const provider = createJuicywayProvider({
+      apiKey: "test-key",
+      baseUrl: "https://api-sandbox.spendjuice.com",
+      beneficiaryId: "ben-1",
+      fetchFn,
+    });
+
+    const rate = await provider.getUsdToNgnRate?.();
+    expect(rate).toBe(16_000);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("resolveOfframpProvider", () => {

@@ -35,9 +35,9 @@ const AGENT_TOOLS: Anthropic.Messages.Tool[] = [
         amountNgn: { type: "number", description: "Amount in NGN kobo units (naira)" },
         recipientId: { type: "string" },
         recipientCategory: { type: "string", description: "e.g. family, food, airtime" },
-        ngnBalanceNgn: { type: "number", description: "Current NGN float available" },
+        ngnBalanceNgn: { type: "number", description: "Optional fallback NGN float if Index balance MCP unavailable" },
       },
-      required: ["amountNgn", "recipientId", "recipientCategory", "ngnBalanceNgn"],
+      required: ["amountNgn", "recipientId", "recipientCategory"],
     },
   },
   {
@@ -140,7 +140,9 @@ async function dispatchTool(
       amountNgn: Number(args["amountNgn"]),
       recipientId: String(args["recipientId"]),
       recipientCategory: String(args["recipientCategory"]),
-      ngnBalanceNgn: Number(args["ngnBalanceNgn"]),
+      ...(args["ngnBalanceNgn"] !== undefined
+        ? { ngnBalanceNgn: Number(args["ngnBalanceNgn"]) }
+        : {}),
     };
     const flowActions = await executeSendNgnFlow(deps.tools, intent, deps.dryRun);
     actions.push(...flowActions);

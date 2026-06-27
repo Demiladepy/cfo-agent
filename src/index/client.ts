@@ -1,4 +1,4 @@
-import { logExternalCall } from "../lib/logger.js";
+import { logExternalCall, logger } from "../lib/logger.js";
 import { isLiveExecutionAllowed } from "../lib/execution.js";
 import { err, ok, isOk, type Result } from "../lib/result.js";
 import { isKillSwitchActive } from "../policy/kill-switch.js";
@@ -25,6 +25,8 @@ export type IndexClientDeps = {
   store: MemoryStore;
   env: Pick<Env, "LIVE_EXECUTION">;
   dryRun: boolean;
+  liveMcp?: boolean;
+  fallbackBalanceNgn?: number;
   onConfirmRequired?: (reason: string) => Promise<boolean>;
 };
 
@@ -150,13 +152,61 @@ export function createIndexClient(deps: IndexClientDeps) {
     }
   }
 
-  return { purchaseAirtime, transfer };
+  async function getNgnBalance(): Promise<
+    Result<{ balanceNgn: number; simulated: boolean }, IndexError>
+  > {
+    const fallback = deps.fallbackBalanceNgn ?? 10_000;
+
+    if (!deps.liveMcp) {
+      logger.warn(
+        { fallback },
+        "Index MCP not configured — returning simulated NGN balance",
+      );
+      try {
+        const mcpResult = await deps.mcp.getNgnBalance();
+        if (mcpResult.success && mcpResult.data?.balanceNgn !== undefined) {
+          return ok({
+            balanceNgn: mcpResult.data.balanceNgn,
+            simulated: true,
+          });
+        }
+      } catch {
+        // fall through to default fallback
+      }
+      return ok({ balanceNgn: fallback, simulated: true });
+    }
+
+    try {
+      const result = await logExternalCall("index", "getNgnBalance", {}, () =>
+        deps.mcp.getNgnBalance(),
+      );
+      if (result.success && result.data?.balanceNgn !== undefined) {
+        return ok({ balanceNgn: result.data.balanceNgn, simulated: false });
+      }
+      logger.warn(
+        { error: result.error, fallback },
+        "Index MCP balance call failed — returning simulated NGN balance",
+      );
+      return ok({ balanceNgn: fallback, simulated: true });
+    } catch (e) {
+      logger.warn(
+        { err: e instanceof Error ? e.message : String(e), fallback },
+        "Index MCP balance unavailable — returning simulated NGN balance",
+      );
+      return ok({ balanceNgn: fallback, simulated: true });
+    }
+  }
+
+  return { purchaseAirtime, transfer, getNgnBalance };
 }
 
 export type IndexClient = ReturnType<typeof createIndexClient>;
 
-export function createMockIndexMcp(): IndexMcpTools {
+export function createMockIndexMcp(options?: {
+  defaultBalanceNgn?: number;
+}): IndexMcpTools {
   const seen = new Set<string>();
+  const defaultBalanceNgn = options?.defaultBalanceNgn ?? 10_000;
   return {
     async purchaseAirtime(req) {
       if (seen.has(req.idempotencyKey)) {
@@ -176,6 +226,12 @@ export function createMockIndexMcp(): IndexMcpTools {
       return {
         success: true,
         reference: `xfer-${req.idempotencyKey.slice(0, 8)}`,
+      };
+    },
+    async getNgnBalance() {
+      return {
+        success: true,
+        data: { balanceNgn: defaultBalanceNgn },
       };
     },
   };

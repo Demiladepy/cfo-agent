@@ -44,4 +44,10 @@ export type IndexMcpTools = {
   transfer: (
     req: TransferRequest,
   ) => Promise<IndexToolResult<{ reference: string }>>;
+  getNgnBalance: () => Promise<IndexToolResult<{ balanceNgn: number }>>;
+};
+
+export type NgnBalance = {
+  balanceNgn: number;
+  simulated: boolean;
 };

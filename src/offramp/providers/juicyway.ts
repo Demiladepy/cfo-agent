@@ -106,5 +106,29 @@ export function createJuicywayProvider(config: JuicywayConfig): OfframpProvider 
         },
       );
     },
+    async getUsdToNgnRate() {
+      const lock = await juicywayRequest<{
+        id: string;
+        target_amount?: number;
+        targetAmount?: number;
+        rate?: number;
+      }>("POST", "/exchange/fx/aggregator-rates/lock", {
+        source_currency: "USDC",
+        target_currency: "NGN",
+        amount: 1_000_000,
+      });
+
+      if (typeof lock.rate === "number" && lock.rate > 0) {
+        return lock.rate;
+      }
+
+      const target = lock.target_amount ?? lock.targetAmount;
+      if (typeof target === "number" && target > 0) {
+        // Lock amount is 1 USDC (6 decimals); target is typically NGN kobo.
+        return target / 100;
+      }
+
+      throw new Error("Juicyway FX lock did not return a usable rate");
+    },
   };
 }

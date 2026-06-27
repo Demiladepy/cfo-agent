@@ -12,15 +12,18 @@ export type IndexMcpConfig = {
   apiKey: string;
   airtimeToolName?: string;
   transferToolName?: string;
+  balanceToolName?: string;
 };
 
 type McpContent = { type: string; text?: string };
 
-function parseToolPayload(result: {
+type McpToolResult = {
   content?: McpContent[];
   structuredContent?: unknown;
   isError?: boolean;
-}): IndexToolResult<{ reference: string }> {
+};
+
+function parseToolPayload(result: McpToolResult): IndexToolResult<{ reference: string }> {
   if (result.isError) {
     const text = result.content?.map((c) => c.text ?? "").join(" ") ?? "MCP error";
     return { success: false, error: text };
@@ -56,6 +59,62 @@ function parseToolPayload(result: {
   }
 
   return { success: false, error: "could not parse MCP tool response" };
+}
+
+function extractBalanceNgn(data: Record<string, unknown>): number | undefined {
+  const candidates = [
+    data["balanceNgn"],
+    data["balance_ngn"],
+    data["ngn_balance"],
+    data["ngnBalance"],
+    data["balance"],
+    data["available"],
+    data["amount"],
+  ];
+  for (const value of candidates) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string" && value.trim().length > 0) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return undefined;
+}
+
+function parseBalancePayload(result: McpToolResult): IndexToolResult<{ balanceNgn: number }> {
+  if (result.isError) {
+    const text = result.content?.map((c) => c.text ?? "").join(" ") ?? "MCP error";
+    return { success: false, error: text };
+  }
+
+  if (result.structuredContent && typeof result.structuredContent === "object") {
+    const balanceNgn = extractBalanceNgn(result.structuredContent as Record<string, unknown>);
+    if (balanceNgn !== undefined) {
+      return { success: true, data: { balanceNgn } };
+    }
+  }
+
+  const text = result.content?.find((c) => c.type === "text")?.text;
+  if (text) {
+    try {
+      const json = JSON.parse(text) as Record<string, unknown>;
+      const balanceNgn = extractBalanceNgn(json);
+      if (balanceNgn !== undefined) {
+        return { success: true, data: { balanceNgn } };
+      }
+    } catch {
+      const parsed = Number(text);
+      if (Number.isFinite(parsed)) {
+        return { success: true, data: { balanceNgn: parsed } };
+      }
+    }
+  }
+
+  return { success: false, error: "could not parse MCP balance response" };
 }
 
 function pickToolName(
@@ -121,6 +180,12 @@ export async function createIndexMcpClient(
     "send",
     "payout",
   ]);
+  const balanceTool = pickToolName(listed.tools, config.balanceToolName, [
+    "balance",
+    "ngn_balance",
+    "get_balance",
+    "float",
+  ]);
 
   async function callTool(
     toolName: string | undefined,
@@ -136,7 +201,7 @@ export async function createIndexMcpClient(
       name: toolName,
       arguments: toSnakeArgs(req),
     });
-    return parseToolPayload(result as Parameters<typeof parseToolPayload>[0]);
+    return parseToolPayload(result as McpToolResult);
   }
 
   return {
@@ -145,6 +210,19 @@ export async function createIndexMcpClient(
     },
     async transfer(req) {
       return callTool(transferTool, req);
+    },
+    async getNgnBalance() {
+      if (!balanceTool) {
+        return {
+          success: false,
+          error: `balance MCP tool not found. Available: ${listed.tools.map((t) => t.name).join(", ")}`,
+        };
+      }
+      const result = await client.callTool({
+        name: balanceTool,
+        arguments: {},
+      });
+      return parseBalancePayload(result as McpToolResult);
     },
     async close() {
       await transport.close();
@@ -167,6 +245,14 @@ export function createIndexMcpTransport(config: IndexMcpConfig): IndexMcpTools {
       const client = await createIndexMcpClient(config);
       try {
         return await client.transfer(req);
+      } finally {
+        await client.close();
+      }
+    },
+    async getNgnBalance() {
+      const client = await createIndexMcpClient(config);
+      try {
+        return await client.getNgnBalance();
       } finally {
         await client.close();
       }

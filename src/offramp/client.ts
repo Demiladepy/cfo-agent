@@ -7,6 +7,11 @@ import { isLiveExecutionAllowed } from "../lib/execution.js";
 import type { Env } from "../config/env.js";
 import type { MemoryStore } from "../memory/index.js";
 import { insertEvent } from "../memory/index.js";
+import {
+  getIdempotencyReference,
+  hasIdempotencyKey,
+  recordIdempotencyKey,
+} from "../index/idempotency.js";
 
 export type OfframpRequest = {
   stablecoinAmount: string;
@@ -23,13 +28,14 @@ export type OfframpResult = {
 };
 
 export type OfframpError = {
-  code: "POLICY_DENIED" | "KILL_SWITCH" | "PROVIDER_ERROR" | "DRY_RUN";
+  code: "POLICY_DENIED" | "KILL_SWITCH" | "PROVIDER_ERROR" | "DRY_RUN" | "DUPLICATE";
   message: string;
 };
 
 export type OfframpProvider = {
   name: string;
   convert: (req: OfframpRequest) => Promise<{ reference: string; ngnAmount: number }>;
+  getUsdToNgnRate?: () => Promise<number>;
 };
 
 export type OfframpClientDeps = {
@@ -41,17 +47,25 @@ export type OfframpClientDeps = {
 };
 
 export function createOfframpClient(deps: OfframpClientDeps) {
-  async function execute(
+  async function convertToNgn(
     req: OfframpRequest,
   ): Promise<Result<OfframpResult, OfframpError>> {
     if (isKillSwitchActive()) {
       return err({ code: "KILL_SWITCH", message: "kill switch is active" });
     }
 
+    if (hasIdempotencyKey(deps.memory, req.idempotencyKey)) {
+      const existing = getIdempotencyReference(deps.memory, req.idempotencyKey);
+      return err({
+        code: "DUPLICATE",
+        message: `duplicate idempotency key: ${req.idempotencyKey} (ref: ${existing})`,
+      });
+    }
+
     const policyResult = deps.policy.evaluate({
-      kind: "bridge",
+      kind: "offramp",
+      category: "offramp",
       notionalNgn: req.targetNgn,
-      cryptoAddress: "0x0000000000000000000000000000000000000001",
     });
     if (!isOk(policyResult)) {
       return err({ code: "POLICY_DENIED", message: policyResult.error.message });
@@ -69,6 +83,7 @@ export function createOfframpClient(deps: OfframpClientDeps) {
         reference,
         ngnAmount: req.targetNgn,
       }));
+      recordIdempotencyKey(deps.memory, req.idempotencyKey, reference);
       insertEvent(deps.memory, "offramp.convert", {
         ...req,
         reference,
@@ -89,6 +104,7 @@ export function createOfframpClient(deps: OfframpClientDeps) {
         req,
         () => deps.provider.convert(req),
       );
+      recordIdempotencyKey(deps.memory, req.idempotencyKey, result.reference);
       insertEvent(deps.memory, "offramp.convert", {
         ...req,
         reference: result.reference,
@@ -108,10 +124,15 @@ export function createOfframpClient(deps: OfframpClientDeps) {
     }
   }
 
-  return { execute };
+  return { execute: convertToNgn, convertToNgn };
 }
 
-export function createMockOfframpProvider(name = "mock"): OfframpProvider {
+export type OfframpClient = ReturnType<typeof createOfframpClient>;
+
+export function createMockOfframpProvider(
+  name = "mock",
+  options?: { usdNgnRate?: number },
+): OfframpProvider {
   return {
     name,
     async convert(req) {
@@ -120,5 +141,8 @@ export function createMockOfframpProvider(name = "mock"): OfframpProvider {
         ngnAmount: req.targetNgn,
       };
     },
+    ...(options?.usdNgnRate
+      ? { getUsdToNgnRate: async () => options.usdNgnRate! }
+      : {}),
   };
 }

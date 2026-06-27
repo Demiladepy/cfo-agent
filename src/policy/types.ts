@@ -4,7 +4,7 @@ export const policyDecisionSchema = z.enum(["allow", "deny", "confirm"]);
 export type PolicyDecision = z.infer<typeof policyDecisionSchema>;
 
 export const policyActionSchema = z.object({
-  kind: z.enum(["spend", "transfer", "swap", "bridge"]),
+  kind: z.enum(["spend", "transfer", "swap", "bridge", "offramp"]),
   notionalNgn: z.number().positive(),
   category: z.string().optional(),
   recipientCategory: z.string().optional(),

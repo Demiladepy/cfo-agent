@@ -21,6 +21,13 @@ export const envSchema = z.object({
   LIFI_INTEGRATOR: z.string().optional(),
   INDEX_MCP_URL: z.string().optional(),
   INDEX_MCP_API_KEY: z.string().optional(),
+  INDEX_MCP_BALANCE_TOOL: z.string().optional(),
+  INDEX_MCP_AIRTIME_TOOL: z.string().optional(),
+  INDEX_MCP_TRANSFER_TOOL: z.string().optional(),
+  FX_FALLBACK_USD_NGN: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.length > 0 ? Number(v) : undefined)),
   OFFRAMP_PROVIDER: z.string().default("juicyway"),
   JUICYWAY_API_KEY: z.string().optional(),
   JUICYWAY_BASE_URL: z.string().optional(),

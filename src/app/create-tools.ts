@@ -13,6 +13,9 @@ import { createLifiClient } from "../lifi/client.js";
 import { resolveLifiSdk } from "../lifi/resolve.js";
 import { createIndexClient } from "../index/client.js";
 import { resolveIndexMcp } from "../index/resolve.js";
+import { createOfframpClient } from "../offramp/client.js";
+import { resolveOfframpProvider } from "../offramp/providers/factory.js";
+import { createFxService } from "../fx/rate.js";
 import { createWallet } from "../wallet/wallet.js";
 import { encryptPrivateKey, decryptPrivateKey } from "../wallet/keystore.js";
 import type { KeystoreFile } from "../wallet/types.js";
@@ -46,7 +49,7 @@ const DEMO_POLICY: PolicyConfig = {
     crypto_addresses: ["0x0000000000000000000000000000000000000001"],
     index_recipient_categories: ["family", "airtime", "food", "bills"],
   },
-  category_caps: { airtime: { daily_ngn: 20_000 } },
+  category_caps: { airtime: { daily_ngn: 20_000 }, offramp: { daily_ngn: 1_000_000 } },
 };
 
 function ensureDemoKeystore(path: string, passphrase: string): void {
@@ -176,12 +179,29 @@ export function createAppContext(options: {
     store,
     env: { LIVE_EXECUTION: env.LIVE_EXECUTION },
     dryRun,
+    liveMcp: indexMode === "live",
+  });
+
+  const offrampProvider = resolveOfframpProvider({ env });
+  const offramp = createOfframpClient({
+    provider: offrampProvider,
+    policy,
+    memory: store,
+    env: { LIVE_EXECUTION: env.LIVE_EXECUTION },
+    dryRun,
+  });
+
+  const fx = createFxService({
+    getRateFromProvider: offrampProvider.getUsdToNgnRate,
+    fallbackUsdNgn: env.FX_FALLBACK_USD_NGN ?? 1500,
   });
 
   const tools: AppTools = {
     wallet,
     lifi,
     index,
+    offramp,
+    fx,
     policy,
     memory: store,
     policyConfig,

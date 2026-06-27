@@ -10,7 +10,7 @@ import {
 import { createPolicyEngineWithAudit } from "../../policy/index.js";
 import { loadPolicyFromObject } from "../../policy/config.js";
 import { closeDatabase, migrate, openDatabase } from "../../db/index.js";
-import { createMemoryStore } from "../../memory/index.js";
+import { createMemoryStore, tailAuditLog } from "../../memory/index.js";
 import { isOk } from "../../lib/result.js";
 
 const policyConfig = {
@@ -28,12 +28,12 @@ const policyConfig = {
   },
 };
 
-describe("offramp client", () => {
+describe("offramp wiring", () => {
   let db: ReturnType<typeof openDatabase>;
   let dbDir: string;
 
   beforeEach(() => {
-    dbDir = mkdtempSync(join(tmpdir(), "cfo-offramp-"));
+    dbDir = mkdtempSync(join(tmpdir(), "cfo-offramp-wire-"));
     db = openDatabase(join(dbDir, "test.db"));
     migrate(db);
   });
@@ -43,7 +43,7 @@ describe("offramp client", () => {
     rmSync(dbDir, { recursive: true, force: true });
   });
 
-  it("converts stablecoin to NGN in dry-run with audit event", async () => {
+  it("evaluates offramp policy kind and blocks duplicate idempotency keys", async () => {
     const store = createMemoryStore(db);
     const policyLoaded = loadPolicyFromObject(policyConfig);
     if (!policyLoaded.ok) throw new Error("bad policy");
@@ -61,23 +61,25 @@ describe("offramp client", () => {
       dryRun: true,
     });
 
-    const result = await client.execute({
+    const key = randomUUID();
+    const req = {
       stablecoinAmount: "1000000",
       stablecoinSymbol: "USDC",
       chainId: 11155111,
-      targetNgn: 150_000,
-      idempotencyKey: randomUUID(),
-    });
+      targetNgn: 40_000,
+      idempotencyKey: key,
+    };
 
-    expect(isOk(result)).toBe(true);
-    if (isOk(result)) {
-      expect(result.value.simulated).toBe(true);
-      expect(result.value.ngnAmount).toBe(150_000);
+    const first = await client.convertToNgn(req);
+    expect(isOk(first)).toBe(true);
+
+    const audits = tailAuditLog(store, 5);
+    expect(audits.some((a) => a.action === "offramp")).toBe(true);
+
+    const dup = await client.convertToNgn(req);
+    expect(isOk(dup)).toBe(false);
+    if (!isOk(dup)) {
+      expect(dup.error.code).toBe("DUPLICATE");
     }
-
-    const events = store.db
-      .prepare("SELECT type FROM events WHERE type = 'offramp.convert'")
-      .all();
-    expect(events.length).toBe(1);
   });
 });

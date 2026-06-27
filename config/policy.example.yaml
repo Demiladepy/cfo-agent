@@ -23,3 +23,5 @@ category_caps:
     daily_ngn: 15000
   airtime:
     daily_ngn: 10000
+  offramp:
+    daily_ngn: 500000

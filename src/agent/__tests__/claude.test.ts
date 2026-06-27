@@ -11,7 +11,10 @@ function mockTools(): AgentTools {
     index: {
       purchaseAirtime: vi.fn(),
       transfer: vi.fn(),
+      getNgnBalance: vi.fn(),
     } as AgentTools["index"],
+    offramp: {} as AgentTools["offramp"],
+    fx: { getUsdToNgn: vi.fn() } as AgentTools["fx"],
     policy: {} as AgentTools["policy"],
     memory: { db: {} } as AgentTools["memory"],
   };

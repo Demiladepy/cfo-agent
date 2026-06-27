@@ -100,6 +100,9 @@ function actionsToSteps(
   const lifiReport = actions.find(
     (a) => a.type === "report" && a.message.includes("LI.FI"),
   );
+  const offrampReport = actions.find(
+    (a) => a.type === "report" && a.message.includes("off-ramp"),
+  );
   if (shortfall > 0) {
     steps.push({
       id: "lifi",
@@ -109,6 +112,19 @@ function actionsToSteps(
           ? lifiReport.message
           : `Quote & execute ~₦${shortfall.toLocaleString()} equivalent (dry-run)`,
       status: actions.some((a) => a.type === "insufficient_funds") ? "error" : "done",
+    });
+    steps.push({
+      id: "offramp",
+      label: "Off-ramp — USDC to NGN float",
+      detail:
+        offrampReport?.type === "report"
+          ? offrampReport.message
+          : `Convert ~₦${shortfall.toLocaleString()} to Index-funded float`,
+      status: actions.some(
+        (a) => a.type === "insufficient_funds" && a.message.includes("off-ramp"),
+      )
+        ? "error"
+        : "done",
     });
   }
 
@@ -150,6 +166,7 @@ export function createDemoServer(options: DemoServerOptions) {
     try {
       if (method === "GET" && url.pathname === "/api/status") {
         const cfg = context.tools.policyConfig;
+        const ngnBal = await context.tools.index.getNgnBalance();
         return json(res, 200, {
           dryRun: context.dryRun,
           killSwitchActive: isKillSwitchActive(context.killSwitchPath),
@@ -160,7 +177,8 @@ export function createDemoServer(options: DemoServerOptions) {
             confirmThresholdNgn: cfg.confirm_threshold_ngn,
           },
           balances: {
-            ngnDemo: 10_000,
+            ngnDemo: ngnBal.ok ? ngnBal.value.balanceNgn : 10_000,
+            ngnSimulated: ngnBal.ok ? ngnBal.value.simulated : true,
             usdcDemo: 25,
             ethDemo: 1,
           },
@@ -204,8 +222,15 @@ export function createDemoServer(options: DemoServerOptions) {
           amountNgn: body.amountNgn ?? 50_000,
           recipientId: body.recipientId ?? "mom",
           recipientCategory: body.recipientCategory ?? "family",
-          ngnBalanceNgn: body.ngnBalanceNgn ?? 10_000,
+          ...(body.ngnBalanceNgn !== undefined
+            ? { ngnBalanceNgn: body.ngnBalanceNgn }
+            : {}),
         };
+
+        const floatBefore = await context.tools.index.getNgnBalance();
+        const ngnForSteps = floatBefore.ok
+          ? floatBefore.value.balanceNgn
+          : (body.ngnBalanceNgn ?? 10_000);
 
         const actions = await executeSendNgnFlow(
           context.tools,
@@ -217,7 +242,10 @@ export function createDemoServer(options: DemoServerOptions) {
         return json(res, 200, {
           ok,
           actions,
-          steps: actionsToSteps(actions, intent),
+          steps: actionsToSteps(actions, {
+            amountNgn: intent.amountNgn,
+            ngnBalanceNgn: ngnForSteps,
+          }),
         });
       }
 

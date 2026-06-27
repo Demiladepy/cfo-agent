@@ -9,10 +9,15 @@ import { encryptPrivateKey } from "../../wallet/keystore.js";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { createLifiClient, type LifiSdk } from "../../lifi/client.js";
 import { createIndexClient, createMockIndexMcp } from "../../index/client.js";
+import {
+  createOfframpClient,
+  createMockOfframpProvider,
+} from "../../offramp/client.js";
+import { createFxService } from "../../fx/rate.js";
 import { createPolicyEngineWithAudit } from "../../policy/index.js";
 import { loadPolicyFromObject } from "../../policy/config.js";
 import { closeDatabase, migrate, openDatabase } from "../../db/index.js";
-import { createMemoryStore } from "../../memory/index.js";
+import { createMemoryStore, tailAuditLog } from "../../memory/index.js";
 import type { RouteQuote } from "../../lifi/types.js";
 import type { PublicClient } from "viem";
 
@@ -25,6 +30,9 @@ const policyConfig = {
   allowlist: {
     crypto_addresses: ["0x0000000000000000000000000000000000000001"],
     index_recipient_categories: ["family"],
+  },
+  category_caps: {
+    offramp: { daily_ngn: 1_000_000 },
   },
 };
 
@@ -57,8 +65,7 @@ describe("canonical send NGN flow", () => {
     rmSync(dbDir, { recursive: true, force: true });
   });
 
-  it("routes from crypto when NGN balance is short", async () => {
-    const store = createMemoryStore(db);
+  async function buildTools(store: ReturnType<typeof createMemoryStore>) {
     const policyLoaded = loadPolicyFromObject(policyConfig);
     if (!policyLoaded.ok) throw new Error("bad policy");
     const policy = createPolicyEngineWithAudit({
@@ -69,9 +76,9 @@ describe("canonical send NGN flow", () => {
 
     const route: RouteQuote = {
       id: "r1",
-      fromAmount: "1000000",
-      toAmount: "990000",
-      toAmountMin: "980000",
+      fromAmount: "40000000000",
+      toAmount: "39600000000",
+      toAmountMin: "39200000000",
       gasCostUsd: 0.1,
       feeCostUsd: 0.1,
       slippageBps: 30,
@@ -118,11 +125,12 @@ describe("canonical send NGN flow", () => {
     });
 
     const index = createIndexClient({
-      mcp: createMockIndexMcp(),
+      mcp: createMockIndexMcp({ defaultBalanceNgn: 10_000 }),
       policy,
       store,
       env: { LIVE_EXECUTION: false },
       dryRun: true,
+      liveMcp: false,
     });
 
     const lifi = createLifiClient({
@@ -132,13 +140,33 @@ describe("canonical send NGN flow", () => {
       dryRun: true,
     });
 
+    const offrampProvider = createMockOfframpProvider("mock", { usdNgnRate: 1600 });
+    const offramp = createOfframpClient({
+      provider: offrampProvider,
+      policy,
+      memory: store,
+      env: { LIVE_EXECUTION: false },
+      dryRun: true,
+    });
+
+    const fx = createFxService({
+      getRateFromProvider: offrampProvider.getUsdToNgnRate,
+      fallbackUsdNgn: 1500,
+    });
+
+    return { wallet, lifi, index, offramp, fx, policy, memory: store };
+  }
+
+  it("routes from crypto when NGN balance is short", async () => {
+    const store = createMemoryStore(db);
+    const tools = await buildTools(store);
+
     const actions = await executeSendNgnFlow(
-      { wallet, lifi, index, policy, memory: store },
+      tools,
       {
         amountNgn: 50_000,
         recipientId: "mom",
         recipientCategory: "family",
-        ngnBalanceNgn: 10_000,
       },
       true,
     );
@@ -147,5 +175,31 @@ describe("canonical send NGN flow", () => {
     expect(actions.some((a) => a.type === "report" && a.message.includes("LI.FI"))).toBe(
       true,
     );
+    expect(actions.some((a) => a.type === "report" && a.message.includes("off-ramp"))).toBe(
+      true,
+    );
+  });
+
+  it("runs wallet → LI.FI → offramp → Index with policy audits in order", async () => {
+    const store = createMemoryStore(db);
+    const tools = await buildTools(store);
+
+    await executeSendNgnFlow(
+      tools,
+      {
+        amountNgn: 50_000,
+        recipientId: "mom",
+        recipientCategory: "family",
+      },
+      true,
+    );
+
+    const audits = tailAuditLog(store, 20).reverse();
+    const kinds = audits.map((a) => a.action);
+    expect(kinds).toContain("swap");
+    expect(kinds).toContain("offramp");
+    expect(kinds).toContain("transfer");
+    expect(kinds.indexOf("swap")).toBeLessThan(kinds.indexOf("offramp"));
+    expect(kinds.indexOf("offramp")).toBeLessThan(kinds.indexOf("transfer"));
   });
 });
