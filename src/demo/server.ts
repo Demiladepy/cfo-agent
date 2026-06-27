@@ -6,13 +6,13 @@ import { dirname } from "node:path";
 import {
   activateKillSwitch,
   deactivateKillSwitch,
-  isKillSwitchActive,
 } from "../policy/kill-switch.js";
 import { tailAuditLog } from "../memory/index.js";
 import { executeSendNgnFlow, type AgentAction } from "../agent/runner.js";
 import { runClaudeAgent } from "../agent/claude.js";
 import { loadEnv } from "../config/env.js";
 import type { AppContext } from "../app/create-tools.js";
+import { buildDemoStatus } from "./status.js";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -28,31 +28,6 @@ export type DemoServerOptions = {
   context: AppContext;
   webRoot: string;
 };
-
-function buildIntegrationStack(context: AppContext): Array<{ label: string; status: string }> {
-  const env = loadEnv();
-  const has = (v?: string) => Boolean(v && v.length > 0);
-
-  return [
-    { label: "Policy + audit log", status: "real" },
-    { label: "Agent orchestration", status: "real" },
-    { label: "Kill switch", status: "real" },
-    {
-      label: "Paystack Index MCP",
-      status: context.tools.integrations.index === "live" ? "real" : "simulated",
-    },
-    {
-      label: "LI.FI SDK",
-      status: context.tools.integrations.lifi === "live" ? "real" : "simulated",
-    },
-    { label: "Wallet (viem)", status: "real" },
-    {
-      label: "Claude agent",
-      status: has(env.ANTHROPIC_API_KEY) ? "real" : "missing",
-    },
-    { label: "Off-ramp", status: "stub" },
-  ];
-}
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, {
@@ -165,25 +140,9 @@ export function createDemoServer(options: DemoServerOptions) {
 
     try {
       if (method === "GET" && url.pathname === "/api/status") {
-        const cfg = context.tools.policyConfig;
-        const ngnBal = await context.tools.index.getNgnBalance();
-        return json(res, 200, {
-          dryRun: context.dryRun,
-          killSwitchActive: isKillSwitchActive(context.killSwitchPath),
-          integrations: ["LI.FI", "Paystack Index"],
-          policy: {
-            perTxCapNgn: cfg.per_tx_cap_ngn,
-            dailyCapNgn: cfg.daily_cap_ngn,
-            confirmThresholdNgn: cfg.confirm_threshold_ngn,
-          },
-          balances: {
-            ngnDemo: ngnBal.ok ? ngnBal.value.balanceNgn : 10_000,
-            ngnSimulated: ngnBal.ok ? ngnBal.value.simulated : true,
-            usdcDemo: 25,
-            ethDemo: 1,
-          },
-          stack: buildIntegrationStack(context),
-        });
+        const env = loadEnv();
+        const status = await buildDemoStatus(context, env);
+        return json(res, 200, status);
       }
 
       if (method === "GET" && url.pathname === "/api/audit") {
@@ -228,9 +187,7 @@ export function createDemoServer(options: DemoServerOptions) {
         };
 
         const floatBefore = await context.tools.index.getNgnBalance();
-        const ngnForSteps = floatBefore.ok
-          ? floatBefore.value.balanceNgn
-          : (body.ngnBalanceNgn ?? 10_000);
+        const ngnForSteps = floatBefore.ok ? floatBefore.value.balanceNgn : 0;
 
         const actions = await executeSendNgnFlow(
           context.tools,

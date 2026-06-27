@@ -1,7 +1,14 @@
+# Copy to config/wallet.yaml and set rpc_url to your keyed provider for production.
+#
+# Default below uses Cloudflare's public Sepolia gateway (no API key, rate-limited).
+# Alternatives: https://rpc.ankr.com/eth_sepolia · https://eth-sepolia.api.onfinality.io/public
+#
+# Demo reads real on-chain balances when mockWalletRpc is false (default).
+
 chains:
   - id: 11155111
     name: sepolia
-    rpc_url: https://rpc.sepolia.org
+    rpc_url: https://web3-trial.cloudflare-eth.com/v1/sepolia
     native_symbol: ETH
     tokens:
       - symbol: USDC

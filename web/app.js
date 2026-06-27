@@ -11,7 +11,6 @@ const SCENARIOS = {
       amountNgn: 50_000,
       recipientId: "mom",
       recipientCategory: "family",
-      ngnBalanceNgn: 10_000,
     },
   },
   airtime: {
@@ -35,6 +34,66 @@ const STATUS_LABEL = {
   stub: "Stub",
   missing: "Missing",
 };
+
+const SOURCE_LABEL = {
+  live: "Live",
+  mock: "Simulated",
+  unavailable: "Unavailable",
+  missing: "Not configured",
+};
+
+function applySourceDot(el, field) {
+  if (!el) return;
+  el.className = `source-dot ${field.source === "missing" ? "unavailable" : field.source}`;
+  const reason = field.reason ? ` — ${field.reason}` : "";
+  el.title = `${SOURCE_LABEL[field.status ?? field.source] ?? field.source}${reason}`;
+}
+
+function renderBalanceField(valueEl, noteEl, dotEl, field, formatter) {
+  applySourceDot(dotEl, field);
+  if (field.value === null || field.value === undefined) {
+    valueEl.textContent = "—";
+    valueEl.classList.add("unavailable");
+    noteEl.textContent = "";
+    return;
+  }
+  valueEl.classList.remove("unavailable");
+  valueEl.textContent = formatter(field.value);
+  if (field.source === "mock") {
+    noteEl.textContent = "Simulated";
+  } else if (field.source === "unavailable") {
+    noteEl.textContent = "";
+  } else {
+    noteEl.textContent = "";
+  }
+}
+
+function renderIntegrationDots(layers) {
+  const el = $("#integration-dots");
+  if (!el) return;
+  if (!layers?.length) {
+    el.innerHTML = "";
+    return;
+  }
+  const dotClass = (status) => {
+    if (status === "live") return "live";
+    if (status === "mock") return "mock";
+    return "unavailable";
+  };
+  el.innerHTML = layers
+    .map(
+      (layer) => `
+    <span class="integration-pill">
+      <span class="source-dot ${dotClass(layer.status)}" title="${escapeHtml(
+        layer.reason
+          ? `${SOURCE_LABEL[layer.status] ?? layer.status} — ${layer.reason}`
+          : (SOURCE_LABEL[layer.status] ?? layer.status),
+      )}"></span>
+      <span>${escapeHtml(layer.label)}</span>
+    </span>`,
+    )
+    .join("");
+}
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -143,9 +202,16 @@ function clearThinking() {
 
 async function loadStatus() {
   const data = await api("/api/status");
-  $("#bal-ngn").textContent = formatNgn(data.balances.ngnDemo);
-  $("#bal-usdc").textContent = `${data.balances.usdcDemo} USDC`;
-  $("#bal-eth").textContent = `${data.balances.ethDemo ?? 0} ETH`;
+
+  renderBalanceField($("#bal-ngn"), $("#note-ngn"), $("#dot-ngn"), data.balances.ngn, formatNgn);
+  renderBalanceField(
+    $("#bal-usdc"),
+    $("#note-usdc"),
+    $("#dot-usdc"),
+    data.balances.usdc,
+    (n) => `${n} USDC`,
+  );
+  renderBalanceField($("#bal-eth"), $("#note-eth"), $("#dot-eth"), data.balances.eth, (n) => `${n} ETH`);
 
   if (data.policy) {
     $("#cap-per-tx").textContent = formatNgn(data.policy.perTxCapNgn);
@@ -159,7 +225,7 @@ async function loadStatus() {
   $("#kill-state").textContent = killActive ? "On" : "Off";
 
   const badge = $("#mode-badge");
-  if (data.dryRun) {
+  if (data.sandbox) {
     badge.textContent = "Sandbox";
     badge.className = "nav-badge";
   } else {
@@ -167,6 +233,7 @@ async function loadStatus() {
     badge.className = "nav-badge live";
   }
 
+  renderIntegrationDots(data.layers);
   renderStack(data.stack);
 }
 

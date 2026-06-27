@@ -128,18 +128,32 @@
             <p class="section-label">Demo workspace</p>
             <h2 class="section-title">Run a scenario</h2>
 
+            <div class="integration-dots" id="integration-dots" aria-label="Integration status"></div>
+
             <div class="balances">
               <article class="balance-card">
-                <span class="balance-label">NGN float</span>
+                <div class="balance-head-row">
+                  <span class="balance-label">NGN float</span>
+                  <span class="source-dot" id="dot-ngn" title=""></span>
+                </div>
                 <span class="balance-value" id="bal-ngn">—</span>
+                <p class="balance-note" id="note-ngn"></p>
               </article>
               <article class="balance-card">
-                <span class="balance-label">USDC</span>
+                <div class="balance-head-row">
+                  <span class="balance-label">USDC</span>
+                  <span class="source-dot" id="dot-usdc" title=""></span>
+                </div>
                 <span class="balance-value" id="bal-usdc">—</span>
+                <p class="balance-note" id="note-usdc"></p>
               </article>
               <article class="balance-card">
-                <span class="balance-label">ETH</span>
+                <div class="balance-head-row">
+                  <span class="balance-label">ETH</span>
+                  <span class="source-dot" id="dot-eth" title=""></span>
+                </div>
                 <span class="balance-value" id="bal-eth">—</span>
+                <p class="balance-note" id="note-eth"></p>
               </article>
             </div>
 
@@ -154,7 +168,7 @@
                 <span class="scenario-num">A</span>
                 <span class="scenario-text">
                   <strong>Send ₦50,000 to mom</strong>
-                  <span>₦10k float · route ₦40k from USDC</span>
+                  <span>Routes via LI.FI + off-ramp when NGN float is short</span>
                 </span>
               </button>
               <button type="button" class="scenario-card choice" data-scenario="airtime">

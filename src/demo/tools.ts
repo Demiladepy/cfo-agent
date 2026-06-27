@@ -15,6 +15,6 @@ export function createDemoContext(options: {
     env: options.env,
     dryRun: options.dryRun ?? true,
     useDemoPolicy: true,
-    mockWalletRpc: options.mockWalletRpc ?? true,
+    mockWalletRpc: options.mockWalletRpc ?? false,
   });
 }

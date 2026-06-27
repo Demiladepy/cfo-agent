@@ -36,6 +36,7 @@ export type AppContext = {
   store: MemoryStore;
   dryRun: boolean;
   killSwitchPath: string;
+  mockWalletRpc: boolean;
   close: () => void;
 };
 
@@ -213,6 +214,7 @@ export function createAppContext(options: {
     store,
     dryRun,
     killSwitchPath: options.killSwitchPath,
+    mockWalletRpc: options.mockWalletRpc ?? false,
     close: () => closeDatabase(db),
   };
 }

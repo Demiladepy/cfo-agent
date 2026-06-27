@@ -514,6 +514,70 @@ body {
   border-color: var(--brand-light);
 }
 
+.balance-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.balance-head-row .balance-label {
+  margin-bottom: 0;
+}
+
+.balance-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.balance-value.unavailable {
+  color: var(--text-tertiary);
+}
+
+.integration-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.integration-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.source-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-tertiary);
+}
+
+.source-dot.live {
+  background: var(--ok);
+  box-shadow: 0 0 0 2px var(--ok-soft);
+}
+
+.source-dot.mock {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px #fef3c7;
+}
+
+.source-dot.unavailable {
+  background: var(--text-tertiary);
+  box-shadow: 0 0 0 2px var(--border);
+}
+
 .balance-label {
   display: block;
   font-size: 12px;

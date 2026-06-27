@@ -13,7 +13,27 @@ pnpm install
 pnpm demo
 ```
 
-Open **http://localhost:4173** — interactive dry-run UI. No API keys required.
+Open **http://localhost:4173** — interactive dry-run UI. No API keys required for the default demo.
+
+### Status & balances (`GET /api/status`)
+
+The demo never fabricates wallet or Index numbers. Each balance field is shaped as:
+
+```json
+{ "value": 25, "source": "mock", "reason": "…" }
+```
+
+| `source` | Meaning |
+|----------|---------|
+| `live` | Read from chain RPC (wallet) or Index MCP (NGN) |
+| `mock` | Simulated layer — `mockWalletRpc`, unconfigured Index, etc. |
+| `unavailable` | Read attempted but failed — `value` is `null` |
+
+**Sandbox badge** is on when *any* of: `dryRun`, `mockWalletRpc`, mock Index MCP, or mock LI.FI. It cannot show “Live” while a layer is simulated.
+
+**Integration dots** (wallet RPC · Index MCP · LI.FI · Claude) mirror the same live / mock / unavailable semantics. Hover for detail.
+
+Sepolia RPC defaults to Cloudflare’s public gateway in `config/wallet.example.yaml`. Swap in your own keyed endpoint for production; set `mockWalletRpc: true` in demo context only when you need offline UI.
 
 | Scenario | What it shows |
 |----------|----------------|
