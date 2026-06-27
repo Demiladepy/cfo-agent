@@ -60,12 +60,30 @@ Off-ramp (Juicyway) is wired but optional — not needed for the Index + LI.FI d
 ```bash
 cp .env.example .env
 cp config/policy.example.yaml config/policy.yaml
-pnpm dev          # dry-run boot
-pnpm test         # 71 tests
-pnpm policy show
+pnpm dev          # interactive REPL (dry-run default)
+pnpm dev --live   # REPL with live session (requires LIVE_EXECUTION=true in .env)
+pnpm test
+pnpm policy show  # also available inside REPL
 pnpm audit tail 10
 pnpm kill         # activate kill switch
 ```
+
+### REPL commands (`pnpm dev`)
+
+| Command | Description |
+|---------|-------------|
+| `status` | Wallet balances, NGN float, policy caps, integration health |
+| `send <amount> <recipient>` | Full send flow via `executeSendNgnFlow` |
+| `airtime <amount> <phone>` | Index airtime purchase |
+| `quote <chain> <usdc>` | LI.FI quote only (e.g. `quote sepolia 10`) |
+| `policy show` | Active policy JSON |
+| `audit tail [n]` | Recent audit log entries |
+| `confirm list` / `confirm <id> y\|n` | Pending confirmation queue (M11) |
+| `kill` / `resume` | Kill switch toggles |
+| `live on` / `live off` | Session live mode (`LIVE_EXECUTION` must be set in `.env`) |
+| `help` / `exit` | Help or quit |
+
+Dry-run is the default. `live on` enables real execution for the session only when `LIVE_EXECUTION=true` is already in the environment.
 
 ## Safety
 
@@ -76,7 +94,7 @@ pnpm kill         # activate kill switch
 
 ## Status
 
-M0–M8 complete. See [`SPEC.md`](SPEC.md) and [`docs/progress/`](docs/progress/).
+M0–M11 complete. See [`SPEC.md`](SPEC.md) and [`docs/progress/`](docs/progress/).
 
 ## Environment
 
