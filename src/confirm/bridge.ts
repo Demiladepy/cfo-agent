@@ -15,7 +15,16 @@ import type { ConfirmRequiredContext } from "../index/client.js";
 import type { AgentAction } from "../agent/runner.js";
 import { isOk } from "../lib/result.js";
 import type { IndexClient } from "../index/client.js";
+import type { AppTools } from "../app/create-tools.js";
 import type { TransferRequest } from "../index/types.js";
+import { executeRebalanceTopup } from "../triggers/rebalance-flow.js";
+
+export type PendingRebalanceAction = {
+  type: "rebalance_topup";
+  deficitNgn: number;
+  targetNgn: number;
+  balanceNgn: number;
+};
 
 export type PendingSendNgnAction = {
   type: "send_ngn_transfer";
@@ -28,6 +37,8 @@ export type PendingSendNgnAction = {
   priorActions?: AgentAction[];
   ngnBalanceNgn?: number;
 };
+
+export type PendingAction = PendingSendNgnAction | PendingRebalanceAction;
 
 export type PolicySnapshot = {
   decision: "confirm";
@@ -62,6 +73,7 @@ export type ConfirmExecutionContext = {
   killSwitchPath: string;
   confirmBridge: ConfirmBridge | null;
   index: IndexClient;
+  tools?: AppTools;
 };
 
 export function buildPolicySnapshot(
@@ -217,10 +229,10 @@ export function parsePendingForApi(row: PendingConfirmationRow): {
   reason: string;
   expiresAt: string;
   createdAt: string;
-  action: PendingSendNgnAction;
+  action: PendingAction;
   caps: PolicySnapshot["caps"];
 } {
-  const action = JSON.parse(row.action_json) as PendingSendNgnAction;
+  const action = JSON.parse(row.action_json) as PendingAction;
   const snapshot = JSON.parse(row.policy_snapshot_json) as PolicySnapshot;
   return {
     id: row.id,
@@ -300,6 +312,53 @@ export async function resolvePendingConfirmation(
   }
 
   const parsed = parsePendingForApi(row);
+
+  if (parsed.action.type === "rebalance_topup") {
+    if (!context.tools) {
+      return { ok: false, status: 500, error: "tools not configured for rebalance confirm" };
+    }
+    const result = await executeRebalanceTopup({
+      tools: context.tools,
+      store: context.store,
+      policyConfig: context.tools.policyConfig,
+      targetNgnFloat: parsed.action.targetNgn,
+      dryRun: context.dryRun,
+      skipPolicyGate: true,
+    });
+    if (result.outcome !== "executed" && result.outcome !== "simulated") {
+      appendAuditLog(context.store, {
+        action: "confirmation",
+        decision: "deny",
+        reason: result.detail,
+        metadata: {
+          auditSubtype: "confirmation_outcome",
+          pendingId,
+          operatorDecision: "approve",
+          outcome: "failed",
+        },
+      });
+      return { ok: false, status: 400, error: result.detail };
+    }
+    updatePendingConfirmationStatus(context.store, pendingId, "approved");
+    appendAuditLog(context.store, {
+      action: "confirmation",
+      decision: "allow",
+      reason: result.detail,
+      metadata: {
+        auditSubtype: "confirmation_outcome",
+        pendingId,
+        operatorDecision: "approve",
+        outcome: "completed",
+      },
+    });
+    return {
+      ok: true,
+      reference: result.detail,
+      simulated: result.outcome === "simulated",
+      actions: [{ type: "report", message: result.detail }],
+    };
+  }
+
   if (parsed.action.type !== "send_ngn_transfer") {
     return { ok: false, status: 400, error: "unsupported pending action type" };
   }

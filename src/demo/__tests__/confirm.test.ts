@@ -158,14 +158,18 @@ describe("demo confirm flow", () => {
         id: string;
         reason: string;
         caps: { dailySpentNgn: number; wouldConsumeNgn: number };
-        action: { intent: { amountNgn: number; recipientId: string } };
+        action:
+          | { type: "send_ngn_transfer"; intent: { amountNgn: number; recipientId: string } }
+          | { type: "rebalance_topup"; deficitNgn: number; targetNgn: number; balanceNgn: number };
       }>;
     };
 
-    const item = pending.pending[0];
-    expect(item?.id).toBeTruthy();
-    expect(item?.reason).toBeTruthy();
-    expect(item?.action.intent.amountNgn).toBe(50_000);
+      const item = pending.pending[0];
+      expect(item?.id).toBeTruthy();
+      expect(item?.reason).toBeTruthy();
+      if (item?.action.type === "send_ngn_transfer") {
+        expect(item.action.intent.amountNgn).toBe(50_000);
+      }
     expect(item?.caps.wouldConsumeNgn).toBe(50_000);
   });
 });

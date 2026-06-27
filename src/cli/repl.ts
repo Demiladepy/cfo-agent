@@ -37,6 +37,10 @@ export const HELP_TEXT = `CFO Agent REPL — commands:
   audit tail [n]                  last n audit entries (default 20)
   confirm list                    pending operator confirmations
   confirm <id> y|n                approve or deny a pending confirmation
+  triggers status                 scheduled jobs, last/next run
+  triggers pause <job>            pause a trigger job
+  triggers resume <job>           resume a paused trigger job
+  triggers run <job>              force immediate run
   kill                            activate kill switch
   resume                          deactivate kill switch
   live on | live off              session live mode (requires LIVE_EXECUTION in .env)
@@ -264,13 +268,20 @@ export async function handleReplCommand(
         writeln(write, "No pending confirmations.");
         return true;
       }
-      for (const row of rows) {
-        const item = parsePendingForApi(row);
+    for (const row of rows) {
+      const item = parsePendingForApi(row);
+      if (item.action.type === "rebalance_topup") {
+        writeln(
+          write,
+          `${item.id} · rebalance ₦${item.action.deficitNgn.toLocaleString()} · ${item.reason}`,
+        );
+      } else {
         writeln(
           write,
           `${item.id} · ₦${item.action.intent.amountNgn.toLocaleString()} → ${item.action.intent.recipientId} · ${item.reason}`,
         );
       }
+    }
       return true;
     }
 
@@ -288,6 +299,7 @@ export async function handleReplCommand(
         killSwitchPath: session.context.killSwitchPath,
         confirmBridge: session.context.confirmBridge,
         index: session.context.tools.index,
+        tools: session.context.tools,
       },
       pendingId,
       decision,
@@ -318,6 +330,54 @@ export async function handleReplCommand(
     const ksPath = resolveCliKillSwitchPath(session);
     deactivateKillSwitch(ksPath);
     writeln(write, `Kill switch deactivated at ${ksPath}`);
+    return true;
+  }
+
+  if (cmd === "triggers") {
+    const sub = parts[1]?.toLowerCase();
+    const jobId = parts[2];
+
+    if (!session.context.triggers) {
+      writeln(write, "Triggers disabled — set TRIGGERS_ENABLED=true in .env");
+      return true;
+    }
+
+    if (sub === "status") {
+      for (const job of session.context.triggers.status()) {
+        writeln(
+          write,
+          `${job.id} · ${job.paused ? "paused" : "active"} · schedule ${job.schedule} · last ${job.lastOutcome ?? "—"} · next ${job.nextRun ?? "—"}`,
+        );
+      }
+      return true;
+    }
+
+    if (!jobId) {
+      writeln(write, "Usage: triggers status | triggers pause|resume|run <job>");
+      return true;
+    }
+
+    if (sub === "pause") {
+      session.context.triggers.pause(jobId);
+      writeln(write, `paused ${jobId}`);
+      return true;
+    }
+    if (sub === "resume") {
+      session.context.triggers.resume(jobId);
+      writeln(write, `resumed ${jobId}`);
+      return true;
+    }
+    if (sub === "run") {
+      const job = await session.context.triggers.runNow(jobId);
+      if (!job) {
+        writeln(write, `unknown job: ${jobId}`);
+      } else {
+        writeln(write, `${job.id}: ${job.lastOutcome} — ${job.lastDetail ?? ""}`);
+      }
+      return true;
+    }
+
+    writeln(write, "Usage: triggers status | triggers pause|resume|run <job>");
     return true;
   }
 

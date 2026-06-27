@@ -44,6 +44,11 @@ export const envSchema = z.object({
     .optional()
     .transform((v) => (v && v.length > 0 ? Number(v) : undefined)),
   REBALANCE_CRON: z.string().optional(),
+  TRIGGERS_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  TRIGGERS_REBALANCE_CRON: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

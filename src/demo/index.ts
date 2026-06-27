@@ -25,7 +25,7 @@ export function main(): void {
 
   server.listen(port, () => {
     logger.info(
-      { port, dryRun: true, webRoot },
+      { port, dryRun: context.dryRun, triggers: Boolean(context.triggers), webRoot },
       "demo server ready — open in browser to record",
     );
     console.log(`\n  Personal CFO demo → http://localhost:${port}\n`);

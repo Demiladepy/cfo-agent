@@ -239,6 +239,73 @@ function renderStack(stack) {
     .join("");
 }
 
+function renderTriggers(data) {
+  const list = $("#triggers-list");
+  const note = $("#triggers-disabled-note");
+  if (!list) return;
+
+  if (!data?.enabled) {
+    list.innerHTML = "";
+    note?.classList.remove("hidden");
+    return;
+  }
+
+  note?.classList.add("hidden");
+
+  if (!data.jobs?.length) {
+    list.innerHTML = '<li class="empty">No scheduled jobs</li>';
+    return;
+  }
+
+  list.innerHTML = data.jobs
+    .map(
+      (job) => `
+    <li data-job-id="${escapeHtml(job.id)}">
+      <div class="trigger-head">
+        <strong>${escapeHtml(job.label)}</strong>
+        <span class="trigger-status ${job.paused ? "paused" : "running"}">${job.paused ? "Paused" : "Scheduled"}</span>
+      </div>
+      <div class="trigger-meta">
+        <div>Schedule: <code>${escapeHtml(job.schedule)}</code></div>
+        <div>Last run: ${job.lastRun ? escapeHtml(job.lastRun) : "—"}</div>
+        <div>Next run: ${job.nextRun ? escapeHtml(job.nextRun) : "—"}</div>
+        <div>Outcome: ${job.lastOutcome ? escapeHtml(job.lastOutcome) : "—"}${job.lastDetail ? ` · ${escapeHtml(job.lastDetail)}` : ""}</div>
+      </div>
+      <div class="trigger-actions">
+        <button type="button" class="btn-ghost btn-sm trigger-run" data-job="${escapeHtml(job.id)}">Run now</button>
+        ${
+          job.paused
+            ? `<button type="button" class="btn-outline btn-sm trigger-resume" data-job="${escapeHtml(job.id)}">Resume</button>`
+            : `<button type="button" class="btn-outline btn-sm trigger-pause" data-job="${escapeHtml(job.id)}">Pause</button>`
+        }
+      </div>
+    </li>`,
+    )
+    .join("");
+
+  list.querySelectorAll(".trigger-pause").forEach((btn) => {
+    btn.addEventListener("click", () => triggerAction(btn.dataset.job, "pause"));
+  });
+  list.querySelectorAll(".trigger-resume").forEach((btn) => {
+    btn.addEventListener("click", () => triggerAction(btn.dataset.job, "resume"));
+  });
+  list.querySelectorAll(".trigger-run").forEach((btn) => {
+    btn.addEventListener("click", () => triggerAction(btn.dataset.job, "run"));
+  });
+}
+
+async function triggerAction(jobId, action) {
+  await api(`/api/triggers/${jobId}/${action}`, { method: "POST" });
+  await loadTriggers();
+  if (action === "run") await loadAudit();
+  showToast(`Trigger ${jobId}: ${action}`);
+}
+
+async function loadTriggers() {
+  const data = await api("/api/triggers");
+  renderTriggers(data);
+}
+
 function appendChatBubble(text, role = "assistant") {
   const thread = $("#chat-reply");
   const bubble = document.createElement("div");
@@ -409,6 +476,9 @@ $("#chat-btn").addEventListener("click", async () => {
   }
 });
 
+$("#refresh-triggers")?.addEventListener("click", loadTriggers);
+
 loadStatus();
 loadAudit();
 loadPendingConfirmations();
+loadTriggers();

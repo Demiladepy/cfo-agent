@@ -24,6 +24,7 @@ import type { PolicyConfig } from "../policy/types.js";
 import type { PolicyEngine } from "../policy/engine.js";
 import type { ConfirmBridge } from "../confirm/bridge.js";
 import { createConfirmBridge } from "../confirm/bridge.js";
+import { createTriggerManager, type TriggerManager } from "../triggers/manager.js";
 
 export type AppTools = AgentTools & {
   policyConfig: PolicyConfig;
@@ -40,6 +41,7 @@ export type AppContext = {
   killSwitchPath: string;
   mockWalletRpc: boolean;
   confirmBridge: ConfirmBridge | null;
+  triggers: TriggerManager | null;
   close: () => void;
 };
 
@@ -92,6 +94,7 @@ export function createAppContext(options: {
   useDemoPolicy?: boolean;
   mockWalletRpc?: boolean;
   enableConfirmBridge?: boolean;
+  enableTriggers?: boolean;
 }): AppContext {
   const { env } = options;
   const dryRun = options.dryRun ?? !env.LIVE_EXECUTION;
@@ -225,13 +228,31 @@ export function createAppContext(options: {
     integrations: { index: indexMode, lifi: lifiMode },
   };
 
-  return {
+  const triggersEnabled =
+    options.enableTriggers ?? (env.TRIGGERS_ENABLED && env.NODE_ENV !== "test");
+
+  const ctx: AppContext = {
     tools,
     store,
     dryRun,
     killSwitchPath: options.killSwitchPath,
     mockWalletRpc: options.mockWalletRpc ?? false,
     confirmBridge,
-    close: () => closeDatabase(db),
+    triggers: null,
+    close: () => {
+      ctx.triggers?.stop();
+      closeDatabase(db);
+    },
   };
+
+  if (triggersEnabled) {
+    ctx.triggers = createTriggerManager({
+      context: ctx,
+      env,
+      dataDir: options.dataDir,
+    });
+    ctx.triggers.start();
+  }
+
+  return ctx;
 }

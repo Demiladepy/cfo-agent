@@ -202,6 +202,7 @@ export function createDemoServer(options: DemoServerOptions) {
             killSwitchPath: context.killSwitchPath,
             confirmBridge: context.confirmBridge,
             index: context.tools.index,
+            tools: context.tools,
           },
           pendingId,
           decision,
@@ -217,8 +218,16 @@ export function createDemoServer(options: DemoServerOptions) {
 
         const approvedRow = getPendingConfirmation(context.store, pendingId);
         const parsed = approvedRow ? parsePendingForApi(approvedRow) : null;
-        const ngnBalance = parsed?.action.ngnBalanceNgn ?? 0;
-        const amountNgn = parsed?.action.intent.amountNgn ?? 0;
+        const ngnBalance =
+          parsed?.action.type === "send_ngn_transfer"
+            ? (parsed.action.ngnBalanceNgn ?? 0)
+            : 0;
+        const amountNgn =
+          parsed?.action.type === "send_ngn_transfer"
+            ? parsed.action.intent.amountNgn
+            : parsed?.action.type === "rebalance_topup"
+              ? parsed.action.deficitNgn
+              : 0;
 
         return json(res, 200, {
           ok: true,
@@ -230,6 +239,38 @@ export function createDemoServer(options: DemoServerOptions) {
             ngnBalanceNgn: ngnBalance,
           }),
         });
+      }
+
+      if (method === "GET" && url.pathname === "/api/triggers") {
+        if (!context.triggers) {
+          return json(res, 200, { enabled: false, jobs: [] });
+        }
+        return json(res, 200, {
+          enabled: true,
+          jobs: context.triggers.status(),
+        });
+      }
+
+      const triggerMatch = url.pathname.match(/^\/api\/triggers\/([^/]+)\/(pause|resume|run)$/);
+      if (method === "POST" && triggerMatch) {
+        if (!context.triggers) {
+          return json(res, 400, { error: "triggers not enabled" });
+        }
+        const jobId = decodeURIComponent(triggerMatch[1] ?? "");
+        const action = triggerMatch[2];
+        if (action === "pause") {
+          context.triggers.pause(jobId);
+          return json(res, 200, { ok: true, jobs: context.triggers.status() });
+        }
+        if (action === "resume") {
+          context.triggers.resume(jobId);
+          return json(res, 200, { ok: true, jobs: context.triggers.status() });
+        }
+        if (action === "run") {
+          const job = await context.triggers.runNow(jobId);
+          if (!job) return json(res, 404, { error: "unknown trigger job" });
+          return json(res, 200, { ok: true, job, jobs: context.triggers.status() });
+        }
       }
 
       if (method === "POST" && url.pathname === "/api/demo/send") {

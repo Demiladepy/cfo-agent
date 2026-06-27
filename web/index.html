@@ -241,6 +241,18 @@
                   <h2 class="panel-title">What's wired</h2>
                   <ul class="stack-list" id="stack-list"></ul>
                 </div>
+
+                <div class="panel" id="triggers-panel">
+                  <div class="panel-head">
+                    <div>
+                      <p class="section-label inline">Proactive</p>
+                      <h2 class="panel-title">Triggers</h2>
+                    </div>
+                    <button type="button" class="btn-ghost btn-sm" id="refresh-triggers">Refresh</button>
+                  </div>
+                  <p class="panel-desc" id="triggers-disabled-note">Set <code>TRIGGERS_ENABLED=true</code> to schedule jobs.</p>
+                  <ul class="triggers-list" id="triggers-list"></ul>
+                </div>
               </div>
 
               <div class="workspace-col">
